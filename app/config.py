@@ -6,10 +6,8 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     # إعدادات قاعدة البيانات (MySQL)
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL",  # الأولوية للمتغير من Railway
-        "mysql+pymysql://root:@localhost/sakani_db"  # افتراضي لو شغال محلي
-    )
+    SQLALCHEMY_DATABASE_URI = "mysql+pymysql://root:XLbTyRplJTtLcOodYuRMpwTavDsSpHQn@switchyard.proxy.rlwy.net:25978/railway"
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # مفتاح التشفير
