@@ -28,9 +28,9 @@ def create_app():
     app.config["JWT_SECRET_KEY"] = "super-secret-key"  # غيرها لمفتاح قوي
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]     # نقرأ التوكن من الكوكي
     app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token_cookie"  # اسم الكوكي
-    app.config["JWT_COOKIE_SECURE"] = False            # خليه True في HTTPS
+    app.config["JWT_COOKIE_SECURE"] = True            # خليه True في HTTPS
     app.config["JWT_COOKIE_SAMESITE"] = "Lax"       # يمنع CSRF
-    app.config["JWT_COOKIE_CSRF_PROTECT"] = False      # وقف CSRF Tokens مؤقتًا
+    app.config["JWT_COOKIE_CSRF_PROTECT"] = True      # وقف CSRF Tokens مؤقتًا
 
     db.init_app(app)
     migrate.init_app(app, db)

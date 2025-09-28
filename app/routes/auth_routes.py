@@ -48,10 +48,11 @@ def register():
         resp.set_cookie(
             "access_token_cookie",
             access_token,
-            httponly=False,
-            secure=False,       # لأنك على HTTP محلي
-            samesite="Lax"      # مناسب للاختبار المحلي
+            httponly=True,
+            secure=True,
+            samesite="Lax"
         )
+
 
 
         return resp
@@ -83,12 +84,13 @@ def login():
         "user": user.to_dict()
     }))
     resp.set_cookie(
-       "access_token_cookie",
+        "access_token_cookie",
         access_token,
-        httponly=False,
-        secure=False,      # True لو عندك HTTPS
-        samesite="Lax" 
+        httponly=True,
+        secure=True,
+        samesite="Lax"
     )
+
     return resp
 
 @auth_bp.route('/profile', methods=['GET'])
