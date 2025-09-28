@@ -1,0 +1,167 @@
+توثيق API: تسجيل مستخدم جديد
+هذا المستند يوضح تفاصيل نقطة النهاية (Endpoint) الخاصة بإنشاء حساب مستخدم جديد في النظام.
+
+1. إنشاء حساب مستخدم جديد POST /register
+يقوم هذا الـ API بإنشاء مستخدم جديد (طالب أو دور آخر) في قاعدة البيانات. عند النجاح، يتم إرجاع access_token و uuid الخاص بالمستخدم.
+
+Endpoint: /register
+
+Method: POST
+
+Content-Type: application/json
+
+المدخلات (Request Body)
+يجب إرسال البيانات التالية في جسم الطلب (Request Body) بصيغة JSON.
+
+الحقل (Field)
+
+النوع (Type)
+
+إجباري؟
+
+الوصف
+
+fullName
+
+string
+
+نعم
+
+الاسم الكامل للمستخدم.
+
+email
+
+string
+
+نعم
+
+البريد الإلكتروني. يجب أن يكون فريداً وغير مستخدم من قبل.
+
+password
+
+string
+
+نعم
+
+كلمة المرور (يجب أن تكون 8 أحرف على الأقل).
+
+phone
+
+string
+
+لا
+
+رقم هاتف المستخدم (اختياري).
+
+birthDate
+
+string
+
+نعم
+
+تاريخ الميلاد بالصيغة YYYY-MM-DD.
+
+gender
+
+string
+
+لا
+
+جنس المستخدم (e.g., "ذكر", "أنثى"). (اختياري)
+
+userType
+
+string
+
+لا
+
+نوع المستخدم. القيمة الافتراضية هي "student".
+
+academicYear
+
+string
+
+نعم (إذا كان طالباً)
+
+السنة الدراسية. إجباري إذا كان userType هو "طالب".
+
+faculty
+
+string
+
+نعم (إذا كان طالباً)
+
+اسم الكلية. إجباري إذا كان userType هو "طالب".
+
+university
+
+string
+
+نعم (إذا كان طالباً)
+
+اسم الجامعة. إجباري إذا كان userType هو "طالب".
+
+مثال على Request Body (لتسجيل طالب)
+{
+    "fullName": "علي محمد",
+    "email": "ali.mohamed@example.com",
+    "password": "verysecretpassword",
+    "phone": "01012345678",
+    "birthDate": "2002-08-15",
+    "gender": "ذكر",
+    "userType": "طالب",
+    "academicYear": "السنة الثالثة",
+    "faculty": "كلية الهندسة",
+    "university": "جامعة القاهرة"
+}
+
+المخرجات (Responses)
+✅ استجابة ناجحة (Status Code: 201 Created)
+يتم إرجاعها عند إنشاء المستخدم بنجاح.
+
+{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "uuid": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+}
+
+❌ استجابات خاطئة (Error Responses)
+1. حقول ناقصة (Status Code: 400 Bad Request)
+
+تحدث عند عدم إرسال أحد الحقول الإجبارية.
+
+{
+    "error": "الحقول المطلوبة غير مكتملة",
+    "missing": [
+        "fullName",
+        "password"
+    ],
+    "received": {
+        "email": "test@test.com"
+        // ... باقي البيانات التي تم إرسالها
+    }
+}
+
+2. صيغة تاريخ ميلاد غير صحيحة (Status Code: 400 Bad Request)
+
+تحدث إذا كان حقل birthDate لا يتبع الصيغة المطلوبة YYYY-MM-DD.
+
+{
+    "error": "صيغة تاريخ الميلاد غير صحيحة"
+}
+
+3. البريد الإلكتروني مستخدم بالفعل (Status Code: 400 Bad Request)
+
+تحدث إذا كان البريد الإلكتروني المُرسل مسجلاً لحساب آخر.
+
+{
+    "error": "البريد الإلكتروني مستخدم بالفعل"
+}
+
+4. خطأ داخلي في الخادم (Status Code: 500 Internal Server Error)
+
+تحدث في حالة حدوث أي خطأ غير متوقع أثناء معالجة الطلب في الخادم.
+
+{
+    "error": "حدث خطأ أثناء إنشاء المستخدم",
+    "details": "وصف تفصيلي للخطأ"
+}

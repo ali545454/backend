@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مؤقت تنازلي</title>
+    <style>
+        /* CSS للتصميم */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            direction: rtl; /* اتجاه النص من اليمين لليسار */
+        }
+
+        .timer-container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        #display {
+            font-size: 4em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #1a1a1a;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .input-group input {
+            width: 80px;
+            text-align: center;
+            padding: 8px;
+            font-size: 1.1em;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+        
+        .input-group label {
+            font-size: 1em;
+            align-self: center;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        #startBtn {
+            background-color: #28a745;
+            color: #fff;
+        }
+
+        #pauseBtn {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        #resetBtn {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        
+        @media (max-width: 600px) {
+            #display {
+                font-size: 3em;
+            }
+            .btn {
+                font-size: 1em;
+                padding: 10px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="timer-container">
+        <h2>مؤقت تنازلي</h2>
+        <div id="display">00:00:00</div>
+        
+        <div class="input-group">
+            <label for="hours">ساعات:</label>
+            <input type="number" id="hours" min="0" max="99" value="0">
+            <label for="minutes">دقائق:</label>
+            <input type="number" id="minutes" min="0" max="59" value="0">
+            <label for="seconds">ثواني:</label>
+            <input type="number" id="seconds" min="0" max="59" value="0">
+        </div>
+
+        <div class="buttons">
+            <button id="startBtn" class="btn">بدء</button>
+            <button id="pauseBtn" class="btn" disabled>إيقاف مؤقت</button>
+            <button id="resetBtn" class="btn" disabled>إعادة تعيين</button>
+        </div>
+    </div>
+
+    <script>
+        const display = document.getElementById('display');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const hoursInput = document.getElementById('hours');
+        const minutesInput = document.getElementById('minutes');
+        const secondsInput = document.getElementById('seconds');
+
+        let timerInterval;
+        let totalSeconds;
+
+        function formatTime(secs) {
+            const hours = Math.floor(secs / 3600);
+            const minutes = Math.floor((secs % 3600) / 60);
+            const seconds = secs % 60;
+            const pad = (num) => String(num).padStart(2, '0');
+            return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+        }
+
+        function updateDisplay() {
+            display.textContent = formatTime(totalSeconds);
+            if (totalSeconds <= 0) {
+                clearInterval(timerInterval);
+                display.textContent = "انتهى الوقت!";
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                resetBtn.disabled = true;
+            } else {
+                totalSeconds--;
+            }
+        }
+
+        function startTimer() {
+            // Get values from inputs
+            let h = parseInt(hoursInput.value) || 0;
+            let m = parseInt(minutesInput.value) || 0;
+            let s = parseInt(secondsInput.value) || 0;
+            
+            // Check if a new timer is being started or resuming
+            if (timerInterval) {
+                 clearInterval(timerInterval);
+            }
+            
+            // If new timer, calculate total seconds
+            if (totalSeconds === undefined || totalSeconds <= 0) {
+                totalSeconds = (h * 3600) + (m * 60) + s;
+                if (totalSeconds <= 0) {
+                     alert("الرجاء إدخال وقت صحيح.");
+                     return;
+                }
+            }
+
+            // Disable inputs and buttons
+            hoursInput.disabled = true;
+            minutesInput.disabled = true;
+            secondsInput.disabled = true;
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            resetBtn.disabled = false;
+
+            timerInterval = setInterval(updateDisplay, 1000);
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            totalSeconds = 0;
+            hoursInput.value = "0";
+            minutesInput.value = "0";
+            secondsInput.value = "0";
+            display.textContent = '00:00:00';
+            
+            // Re-enable inputs and buttons
+            hoursInput.disabled = false;
+            minutesInput.disabled = false;
+            secondsInput.disabled = false;
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            resetBtn.disabled = true;
+        }
+
+        startBtn.addEventListener('click', startTimer);
+        pauseBtn.addEventListener('click', pauseTimer);
+        resetBtn.addEventListener('click', resetTimer);
+    </script>
+
+</body>
+</html>
