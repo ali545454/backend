@@ -15,7 +15,7 @@ def create_app():
     CORS(
         app,
         supports_credentials=True,
-        resources={r"/api/*": {"origins": "https://yallasakn.vercel.app"}}
+        resources={r"*": {"origins": "https://yallasakn.vercel.app"}}
     )
 
 
