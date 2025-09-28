@@ -14,7 +14,6 @@ class Config:
     SECRET_KEY = "your-secret-key"
 
     # إعدادات JWT
-    JWT_SECRET_KEY = 'your_jwt_secret_key'
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=30)
 
     # مسار حفظ الصور

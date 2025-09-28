@@ -137,7 +137,6 @@ def update_password():
 @jwt_required()
 def logout():
     resp = jsonify({"message": "تم تسجيل الخروج بنجاح"})
-    resp.delete_cookie("access_token_cookie")
     return resp, 200
 
 
@@ -170,6 +169,5 @@ def update_profile():
         return resp
 
 @auth_bp.route("/check", methods=["GET"])
-@jwt_required()
 def check_auth():
     return jsonify({"message": "Authenticated"}), 200
