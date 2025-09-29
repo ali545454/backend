@@ -50,7 +50,7 @@ def register():
             access_token,
             httponly=True,
             secure=True,
-            samesite="Lax"
+            samesite="None"
         )
 
 
@@ -88,7 +88,7 @@ def login():
         access_token,
         httponly=True,
         secure=True,
-        samesite="Lax"
+        samesite="None"
     )
 
     return resp
