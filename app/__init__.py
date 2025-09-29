@@ -31,7 +31,8 @@ def create_app():
     app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token_cookie"  # اسم الكوكي
     app.config["JWT_COOKIE_SECURE"] = True            # خليه True في HTTPS
     app.config["JWT_COOKIE_SAMESITE"] = "None"
-    app.config["JWT_COOKIE_CSRF_PROTECT"] = True      # وقف CSRF Tokens مؤقتًا
+    app.config["JWT_COOKIE_CSRF_PROTECT"] = False
+     # وقف CSRF Tokens مؤقتًا
 
     db.init_app(app)
     migrate.init_app(app, db)
