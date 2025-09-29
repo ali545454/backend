@@ -62,7 +62,7 @@ class User(db.Model):
             "birth_date": self.birth_date.isoformat() if self.birth_date else None,
             "gender": self.gender,
             "role": self.role,
-            "academic_year": self.academic_year,
+            "academicYear": self.academic_year,
             "college": self.college,
             "university": self.university,
             
