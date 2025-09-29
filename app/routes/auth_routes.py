@@ -169,5 +169,6 @@ def update_profile():
         return resp
 
 @auth_bp.route("/check", methods=["GET"])
+@jwt_required(locations=["cookies"])
 def check_auth():
     return jsonify({"message": "Authenticated"}), 200
