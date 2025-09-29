@@ -39,6 +39,7 @@ def add_to_favorites():
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": "An error occurred", "error": str(e)}), 500
+        
 @favorites_bp.route('/remove/<string:apartment_uuid>', methods=['DELETE'])
 @jwt_required(locations=["cookies"])
 def remove_from_favorites(apartment_uuid):
@@ -81,11 +82,12 @@ def get_favorites():
         apartment = Apartment.query.filter_by(id=fav.apartment_id).first()
         if apartment:
             apartments.append({
-                "id": apartment.uuid,  # ✅ رجع UUID مش id
+                "uuid": apartment.uuid,  
                 "title": apartment.title,
                 "price": apartment.price,
                 "address": apartment.address,
                 "rooms": apartment.rooms,
             })
+
 
     return jsonify({"apartments": apartments}), 200
