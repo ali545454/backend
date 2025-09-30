@@ -7,26 +7,26 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     # إعدادات قاعدة البيانات (MySQL)
-    SQLALCHEMY_DATABASE_URI = "mysql+pymysql://root:XLbTyRplJTtLcOodYuRMpwTavDsSpHQn@switchyard.proxy.rlwy.net:25978/railway"
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # مفتاح التشفير
-    SECRET_KEY = "your-secret-key"
+    SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key")
 
     # إعدادات JWT
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=30)
 
-    # مسار حفظ الصور
+    # مسار حفظ الصور (لو عايز تحفظ نسخة محليًا)
     UPLOAD_FOLDER = os.path.join(basedir, 'uploads')
 
-    # السماح بأنواع معينة من الصور فقط (اختياري)
+    # السماح بأنواع معينة من الصور فقط
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-   
-    # JWT Cookies settings
-    # Cloudaniery Images 
+
+    # Cloudinary configuration (أسهل كده)
     cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_URL").split("@")[1],  
-    api_key=os.getenv("CLOUDINARY_URL").split(":")[1].replace("//", ""),  
-    api_secret=os.getenv("CLOUDINARY_URL").split(":")[2].split("@")[0]  
-)
+        secure=True,
+        cloud_name=None,  # مش محتاج تحطهم، SDK هيقراهم من CLOUDINARY_URL
+        api_key=None,
+        api_secret=None
+    )
