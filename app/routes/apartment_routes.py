@@ -110,13 +110,13 @@ def create_apartment():  # ← لازم يكون فارغ
         images = request.files.getlist('images')
 
 
-            for img in apartment.images:
-                try:
-                    # استخراج public_id من رابط الصورة
-                    public_id = img.url.rsplit('/', 1)[-1].split('.')[0]
-                    cloudinary.uploader.destroy(f"apartments/{apartment.id}/{public_id}")
-                except Exception as e:
-                    print("❌ Error deleting Cloudinary image:", e)
+        for img in apartment.images:
+            try:
+                # استخراج public_id من رابط الصورة
+                public_id = img.url.rsplit('/', 1)[-1].split('.')[0]
+                cloudinary.uploader.destroy(f"apartments/{apartment.id}/{public_id}")
+            except Exception as e:
+                print("❌ Error deleting Cloudinary image:", e)
 
                 # حفظ رابط الصورة من Cloudinary في الـ DB
                 new_image = Image(
