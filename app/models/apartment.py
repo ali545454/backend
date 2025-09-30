@@ -130,15 +130,10 @@ class Apartment(db.Model):
         }
 
         if include_all_images:
-            data['images'] = [
-                f"{base_url}/uploads/{os.path.basename(img.url)}"
-                for img in (self.images or [])
-            ]
+            data['images'] = [img.url for img in (self.images or [])]
         else:
             first_image = self.images[0] if self.images else None
-            data['main_image'] = (
-                f"{base_url}/uploads/{os.path.basename(first_image.url)}"
-                if first_image else None
-            )
+            data['main_image'] = first_image.url if first_image else None
+
 
         return data
