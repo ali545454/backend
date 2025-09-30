@@ -23,10 +23,9 @@ class Config:
     # السماح بأنواع معينة من الصور فقط
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-    # Cloudinary configuration (أسهل كده)
-    cloudinary.config(
-        secure=True,
-        cloud_name=None,  # مش محتاج تحطهم، SDK هيقراهم من CLOUDINARY_URL
-        api_key=None,
-        api_secret=None
-    )
+# ✅ Cloudinary config (يتنادى مرة واحدة بس)
+cloudinary.config(
+    secure=True
+    # مش لازم تحدد الباقي، SDK هيقرأهم من CLOUDINARY_URL أو من
+    # CLOUDINARY_CLOUD_NAME + CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET
+)
