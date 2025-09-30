@@ -76,18 +76,25 @@ def get_favorites():
     if not user:
         return jsonify({"apartments": []}), 200
 
+    # 🟢 جلب كل المفضلات الخاصة بالمستخدم
     favorites = Favorite.query.filter_by(user_id=user.id).all()
-    apartments = []
-    for fav in favorites:
-        apartment = Apartment.query.filter_by(id=fav.apartment_id).first()
-        if apartment:
-            apartments.append({
-                "uuid": apartment.uuid,  
-                "title": apartment.title,
-                "price": apartment.price,
-                "address": apartment.address,
-                "rooms": apartment.rooms,
-            })
+    fav_apartment_ids = [fav.apartment_id for fav in favorites]
 
+    if not fav_apartment_ids:
+        return jsonify({"apartments": []}), 200
+
+    apartments_query = Apartment.query.filter(Apartment.id.in_(fav_apartment_ids)).all()
+
+    apartments = []
+    for apt in apartments_query:
+        apartments.append({
+            "uuid": apt.uuid,
+            "title": apt.title,
+            "price": apt.price,
+            "address": apt.address,
+            "rooms": apt.rooms,
+            "main_image": apt.images[0].url if apt.images else None
+        })
 
     return jsonify({"apartments": apartments}), 200
+
