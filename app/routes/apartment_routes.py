@@ -266,7 +266,7 @@ def get_my_apartments():
             "price": apt.price,
             "neighborhood": apt.neighborhood.name if apt.neighborhood else None,
             "status": "متاحة",
-            "main_image": url_for("uploaded_file", filename=main_image.url, _external=True) if main_image else None,
+            "main_image": main_image.url if main_image else None,
             "views": views_count
         })
     
