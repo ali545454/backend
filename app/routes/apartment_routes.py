@@ -21,6 +21,7 @@ from app.models.review import Review
 # (تأكد من أن المسار صحيح حسب هيكل مشروعك)
 from app.schemas.apartment_schema import ApartmentSchema
   # مجلدين لفوق
+import cloudinary.uploader
 
 apartment_bp = Blueprint('apartment_bp', __name__)
 
@@ -104,16 +105,23 @@ def create_apartment():  # ← لازم يكون فارغ
         db.session.add(new_apartment)
         db.session.flush()
 
-        # --- التعامل مع الصور ---
+# --- التعامل مع الصور باستخدام Cloudinary ---
+
         images = request.files.getlist('images')
-        upload_folder = current_app.config['UPLOAD_FOLDER']
 
         for img in images:
             if img.filename != '':
-                filename = secure_filename(f"{uuid.uuid4()}_{img.filename}")
-                filepath = os.path.join(upload_folder, filename)
-                img.save(filepath)
-                new_image = Image(url=filename, apartment_id=new_apartment.id)
+                # رفع الصورة مباشرة إلى Cloudinary
+                upload_result = cloudinary.uploader.upload(
+                    img,
+                    folder=f"apartments/{new_apartment.id}"
+                )
+
+                # حفظ رابط الصورة من Cloudinary في الـ DB
+                new_image = Image(
+                    url=upload_result['secure_url'],
+                    apartment_id=new_apartment.id
+                )
                 db.session.add(new_image)
 
         db.session.commit()
