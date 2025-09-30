@@ -23,3 +23,9 @@ class Config:
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
    
     # JWT Cookies settings
+    # Cloudaniery Images 
+    cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_URL").split("@")[1],  
+    api_key=os.getenv("CLOUDINARY_URL").split(":")[1].replace("//", ""),  
+    api_secret=os.getenv("CLOUDINARY_URL").split(":")[2].split("@")[0]  
+)

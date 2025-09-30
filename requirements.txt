@@ -1,14 +1,28 @@
-python-dotenv
+# بيئة Flask أساسية
 Flask==3.0.3
-Flask-SQLAlchemy==3.1.1
-Flask-Migrate==4.0.5
-Flask-Cors==5.0.0
-Flask-JWT-Extended==4.6.0
 Werkzeug==3.0.3
-PyJWT==2.9.0
-Pillow==10.4.0
+gunicorn==23.0.0
+
+# قواعد البيانات و ORM
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.21
+Flask-Migrate==4.0.5
 PyMySQL==1.1.1
 mysqlclient==2.2.4
-SQLAlchemy==2.0.21
-gunicorn==23.0.0
+
+# التعامل مع JSON + فالياديشن
 marshmallow==3.21.3
+
+# Authentication
+Flask-JWT-Extended==4.6.0
+PyJWT==2.9.0
+
+# CORS
+Flask-Cors==5.0.0
+
+# رفع الصور والتعامل معها
+Pillow==10.4.0
+cloudinary
+
+# بيئة وتشغيل
+python-dotenv

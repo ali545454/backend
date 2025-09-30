@@ -1,12 +1,10 @@
-from flask import Blueprint, request, jsonify, current_app, send_from_directory
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from werkzeug.utils import secure_filename
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
+from flask_cors import cross_origin
 from app.models.apartment import Apartment
 from app.models.image import Image  # جدول الصور
 from app import db
-import os
-import uuid
-from flask_cors import cross_origin
+import cloudinary.uploader
 
 image_bp = Blueprint('image_bp', __name__)
 
@@ -14,6 +12,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 # ✅ رفع صورة لشقة وربطها في قاعدة البيانات
 @image_bp.route('/upload-image/<string:apartment_id>', methods=['POST'])
@@ -33,41 +32,34 @@ def upload_image(apartment_id):
     if not apartment:
         return jsonify({'error': 'الشقة غير موجودة'}), 404
 
-    # تغيير اسم الملف لتفادي التكرار
-    ext = file.filename.rsplit('.', 1)[1].lower()
-    filename = f"{uuid.uuid4()}.{ext}"
-    path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+    # ✅ رفع الصورة لـ Cloudinary
+    try:
+        result = cloudinary.uploader.upload(file)
+        secure_url = result.get("secure_url")
+    except Exception as e:
+        return jsonify({'error': f'فشل في رفع الصورة: {str(e)}'}), 500
 
-    # حفظ الملف
-    file.save(path)
-
-    # حفظ اسم الملف في جدول الصور وربطه بالشقة
-    image = Image(url=filename, apartment_id=apartment.id)
-
+    # ✅ حفظ الرابط في جدول الصور وربطه بالشقة
+    image = Image(url=secure_url, apartment_id=apartment.id)
     db.session.add(image)
     db.session.commit()
 
-    image_url = f"{request.host_url}uploads/{filename}"
-    return jsonify({'message': 'تم رفع الصورة بنجاح', 'image_url': image_url}), 201
-
-# ✅ عرض صورة
-@image_bp.route('/uploads/<filename>', methods=['GET'])
-def get_uploaded_file(filename):
-    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+    return jsonify({
+        'message': 'تم رفع الصورة بنجاح',
+        'image_url': secure_url
+    }), 201
 
 
-
-
+# ✅ جلب كل صور شقة معينة
 @image_bp.route('/apartment/<int:apartment_id>/images', methods=['GET'])
 @cross_origin()
 def get_apartment_images(apartment_id):
     images = Image.query.filter_by(apartment_id=apartment_id).all()
 
     if not images:
-        return jsonify({'error': 'No images found for this apartment'}), 404
+        return jsonify({'error': 'لا توجد صور لهذه الشقة'}), 404
 
-    base_url = request.host_url.rstrip('/')
-    image_urls = [f"{base_url}/uploads/{img.url}" for img in images]
+    image_urls = [img.url for img in images]
 
     return jsonify({
         "apartment_id": apartment_id,
