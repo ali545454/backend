@@ -42,11 +42,9 @@ def str_to_bool(val):
 
 @apartment_bp.route('/create', methods=['POST'])
 @jwt_required(locations=["cookies"])
-def create_apartment():  # ← لازم يكون فارغ
-
+def create_apartment():
     user_uuid = get_jwt_identity()
     user = User.query.filter_by(uuid=user_uuid).first_or_404()
-
 
     try:
         data = request.form
@@ -62,7 +60,6 @@ def create_apartment():  # ← لازم يكون فارغ
         floor_number = int(data.get('floor_number')) if data.get('floor_number') else None
 
         # --- الحقول من نوع checkbox ---
-        # --- الحقول من نوع checkbox ---
         has_elevator = str_to_bool(data.get('has_elevator'))
         has_wifi = str_to_bool(data.get('has_wifi'))
         has_ac = str_to_bool(data.get('has_ac'))
@@ -71,7 +68,6 @@ def create_apartment():  # ← لازم يكون فارغ
         has_oven = str_to_bool(data.get('has_oven'))
         has_gas = str_to_bool(data.get('has_gas'))
         near_transport = str_to_bool(data.get('near_transport'))
-
 
         # --- إنشاء الشقة ---
         new_apartment = Apartment(
@@ -103,29 +99,22 @@ def create_apartment():  # ← لازم يكون فارغ
         )
 
         db.session.add(new_apartment)
-        db.session.flush()
+        db.session.flush()  # عشان نجيب ID قبل رفع الصور
 
-# --- التعامل مع الصور باستخدام Cloudinary ---
-
+        # --- رفع الصور على Cloudinary ---
         images = request.files.getlist('images')
+        for img_file in images:
+            upload_result = cloudinary.uploader.upload(
+                img_file,
+                folder=f"apartments/{new_apartment.id}"
+            )
+            new_image = Image(
+                url=upload_result['secure_url'],
+                apartment_id=new_apartment.id
+            )
+            db.session.add(new_image)
 
-
-        for img in apartment.images:
-            try:
-                # استخراج public_id من رابط الصورة
-                public_id = img.url.rsplit('/', 1)[-1].split('.')[0]
-                cloudinary.uploader.destroy(f"apartments/{apartment.id}/{public_id}")
-            except Exception as e:
-                print("❌ Error deleting Cloudinary image:", e)
-
-                # حفظ رابط الصورة من Cloudinary في الـ DB
-                new_image = Image(
-                    url=upload_result['secure_url'],
-                    apartment_id=new_apartment.id
-                )
-                db.session.add(new_image)
-
-        db.session.commit()
+        db.session.commit()  # هنا نعمل commit مرة واحدة بعد كل التعديلات
 
         return jsonify({
             'message': 'Apartment created successfully',
@@ -136,7 +125,6 @@ def create_apartment():  # ← لازم يكون فارغ
         db.session.rollback()
         print(f"An error occurred: {e}")
         return jsonify({'error': 'حدث خطأ غير متوقع في الخادم'}), 500
-
 
 
 @apartment_bp.route('/all_apartments', methods=['GET'])
