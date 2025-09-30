@@ -1,5 +1,6 @@
 import os
 from datetime import timedelta
+import cloudinary
 
 # المسار الأساسي للمشروع
 basedir = os.path.abspath(os.path.dirname(__file__))

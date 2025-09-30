@@ -21,7 +21,7 @@ def upload_image(apartment_id):
     if 'image' not in request.files:
         return jsonify({'error': 'يجب اختيار ملف صورة'}), 400
 
-    file = request.files['image']
+    files = request.files.getlist("images")
     if file.filename == '':
         return jsonify({'error': 'اسم الملف فارغ'}), 400
 
