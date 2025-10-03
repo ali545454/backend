@@ -112,6 +112,7 @@ def get_users(current_admin):
     return jsonify([
         {
             "id": u.id,
+            "uuid": u.uuid,
             "name": u.full_name,
             "email": u.email,
             "role": u.role
