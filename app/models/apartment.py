@@ -64,7 +64,7 @@ class Apartment(db.Model):
 
     reviews = db.relationship('Review', back_populates='apartment', cascade="all, delete-orphan")
     images = db.relationship('Image', back_populates='apartment', cascade='all, delete-orphan', lazy='select')
-    favorites = db.relationship('Favorite', back_populates='apartment', lazy=True)
+    favorites = db.relationship('Favorite', back_populates='apartment', lazy=True   ,cascade="all, delete-orphan")
 
     # --- الخصائص المحسوبة ---
     @property
