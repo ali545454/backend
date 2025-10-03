@@ -105,15 +105,16 @@ def get_users():
     users = User.query.all()
     return jsonify([u.to_dict() for u in users])
 
-@admin_bp.route("/users/<string:user_id>", methods=["DELETE"])
+@admin_bp.route("/users/<string:user_uuid>", methods=["DELETE"])
 @admin_required
-def delete_user(user_id):
-    user = User.query.get(user_id)
+def delete_user(user_uuid):
+    user = User.query.filter_by(uuid=user_uuid).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "User deleted"})
+    
 
 # =========================
 # Apartments
@@ -124,15 +125,17 @@ def get_apartments():
     apartments = Apartment.query.all()
     return jsonify([a.to_dict(include_all_images=True) for a in apartments])
 
-@admin_bp.route("/apartments/<string:apartment_id>", methods=["DELETE"])
+# DELETE apartment
+@admin_bp.route("/apartments/<string:apartment_uuid>", methods=["DELETE"])
 @admin_required
-def delete_apartment(apartment_id):
-    apartment = Apartment.query.get(apartment_id)
+def delete_apartment(apartment_uuid):
+    apartment = Apartment.query.filter_by(uuid=apartment_uuid).first()
     if not apartment:
         return jsonify({"error": "Apartment not found"}), 404
     db.session.delete(apartment)
     db.session.commit()
     return jsonify({"message": "Apartment deleted"})
+
 
 # =========================
 # Reviews
