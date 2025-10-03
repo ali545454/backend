@@ -125,15 +125,23 @@ def get_apartments():
     apartments = Apartment.query.all()
     return jsonify([a.to_dict(include_all_images=True) for a in apartments])
 
+
 @admin_bp.route("/apartments/<string:apartment_uuid>", methods=["DELETE"])
 @admin_required
 def delete_apartment(apartment_uuid):
-    apartment = Apartment.query.filter_by(uuid=apartment_uuid).first()
-    if not apartment:
-        return jsonify({"error": "Apartment not found"}), 404
-    db.session.delete(apartment)
-    db.session.commit()
-    return jsonify({"message": "Apartment deleted"})
+    try:
+        apartment = Apartment.query.filter_by(uuid=apartment_uuid).first()
+        if not apartment:
+            return jsonify({"error": "Apartment not found"}), 404
+
+        # حذف الشقة مع كل العلاقات المربوطة عليها cascade
+        db.session.delete(apartment)
+        db.session.commit()
+
+        return jsonify({"message": "Apartment deleted successfully"})
+    except SQLAlchemyError as e:
+        db.session.rollback()  # إعادة الوضع السابق قبل الخطأ
+        return jsonify({"error": str(e)}), 400
 
 # =========================
 # Reviews
