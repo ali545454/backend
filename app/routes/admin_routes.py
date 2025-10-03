@@ -9,6 +9,7 @@ from ..models.admin import Admin
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt, datetime, uuid
 from functools import wraps
+from flask_jwt_extended import jwt_required
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
