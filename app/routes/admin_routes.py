@@ -119,14 +119,12 @@ def get_users(current_admin):
         }
         for u in users
     ]), 200
-
 @admin_bp.route("/users/<string:user_uuid>", methods=["DELETE"])
 @token_required
 def delete_user(current_admin, user_uuid):
     if not is_valid_uuid(user_uuid):
         return {"error": "Invalid UUID"}, 400
 
-    # فلترة بالـ uuid مش id
     user = User.query.filter_by(uuid=user_uuid).first()
     if not user:
         return {"error": "User not found"}, 404
@@ -140,6 +138,7 @@ def delete_user(current_admin, user_uuid):
     db.session.delete(user)
     db.session.commit()
     return {"message": "User deleted successfully"}, 200
+
 
 
 # =========================
