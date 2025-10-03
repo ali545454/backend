@@ -9,7 +9,6 @@ from ..models.admin import Admin
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt, datetime, uuid
 from functools import wraps
-from flask_jwt_extended import jwt_required
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
@@ -22,22 +21,21 @@ def admin_required(f):
         token = request.headers.get("Authorization")
         if not token:
             return jsonify({"error": "Token missing"}), 401
-        
         try:
-            token = token.split(" ")[1]  # "Bearer <token>"
+            token = token.split(" ")[1]  # Bearer <token>
             data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
-            admin_id = data.get("admin_id")
-            admin = Admin.query.get(admin_id)
+            if "admin_id" not in data:
+                return jsonify({"error": "Not an admin token"}), 403
+            admin = Admin.query.get(data["admin_id"])
             if not admin:
                 return jsonify({"error": "Invalid token"}), 401
         except Exception:
             return jsonify({"error": "Invalid or expired token"}), 401
-
         return f(*args, **kwargs)
     return wrapper
 
 # =========================
-# Auth
+# Admin Auth
 # =========================
 @admin_bp.route("/register", methods=["POST"])
 def register_admin():
@@ -64,7 +62,6 @@ def register_admin():
 def login_admin():
     data = request.json
     admin = Admin.query.filter_by(email=data.get("email")).first()
-
     if not admin or not check_password_hash(admin.password, data.get("password")):
         return jsonify({"error": "Invalid credentials"}), 401
 
@@ -77,11 +74,14 @@ def login_admin():
         algorithm="HS256"
     )
 
-    return jsonify({
+    response = jsonify({
         "message": "Login successful",
         "admin": {"id": admin.id, "username": admin.username, "email": admin.email},
         "token": token
-    }), 200
+    })
+    # إذا تحب تخزن الكوكيز:
+    response.set_cookie("admin_token", token, httponly=True)
+    return response
 
 # =========================
 # Stats
@@ -115,7 +115,6 @@ def delete_user(user_uuid):
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "User deleted"})
-    
 
 # =========================
 # Apartments
@@ -126,22 +125,15 @@ def get_apartments():
     apartments = Apartment.query.all()
     return jsonify([a.to_dict(include_all_images=True) for a in apartments])
 
-# DELETE apartment
-
 @admin_bp.route("/apartments/<string:apartment_uuid>", methods=["DELETE"])
-@jwt_required()
+@admin_required
 def delete_apartment(apartment_uuid):
     apartment = Apartment.query.filter_by(uuid=apartment_uuid).first()
     if not apartment:
         return jsonify({"error": "Apartment not found"}), 404
-    try:
-        db.session.delete(apartment)
-        db.session.commit()
-        return jsonify({"message": "Apartment deleted"})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
-
+    db.session.delete(apartment)
+    db.session.commit()
+    return jsonify({"message": "Apartment deleted"})
 
 # =========================
 # Reviews
