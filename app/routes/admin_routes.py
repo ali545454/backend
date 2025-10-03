@@ -119,25 +119,27 @@ def get_users(current_admin):
         for u in users
     ]), 200
 
-@admin_bp.route("/users/<string:user_id>", methods=["DELETE"])
+@admin_bp.route("/users/<string:user_uuid>", methods=["DELETE"])
 @token_required
-def delete_user(current_admin, user_id):
-    if not is_valid_uuid(user_id):
+def delete_user(current_admin, user_uuid):
+    if not is_valid_uuid(user_uuid):
         return {"error": "Invalid UUID"}, 400
 
-    user = User.query.get(user_id)
+    # فلترة بالـ uuid مش id
+    user = User.query.filter_by(uuid=user_uuid).first()
     if not user:
         return {"error": "User not found"}, 404
 
     if user.role == "owner":
-        apartments = Apartment.query.filter_by(owner_id=user_id).all()
+        apartments = Apartment.query.filter_by(owner_id=user.id).all()
         for apt in apartments:
             Favorite.query.filter_by(apartment_id=apt.id).delete()
             db.session.delete(apt)
 
     db.session.delete(user)
     db.session.commit()
-    return {"message": "User deleted successfully"}
+    return {"message": "User deleted successfully"}, 200
+
 
 # =========================
 # إدارة الشقق
