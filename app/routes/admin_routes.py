@@ -126,15 +126,20 @@ def get_apartments():
     return jsonify([a.to_dict(include_all_images=True) for a in apartments])
 
 # DELETE apartment
+
 @admin_bp.route("/apartments/<string:apartment_uuid>", methods=["DELETE"])
-@admin_required
+@jwt_required()
 def delete_apartment(apartment_uuid):
     apartment = Apartment.query.filter_by(uuid=apartment_uuid).first()
     if not apartment:
         return jsonify({"error": "Apartment not found"}), 404
-    db.session.delete(apartment)
-    db.session.commit()
-    return jsonify({"message": "Apartment deleted"})
+    try:
+        db.session.delete(apartment)
+        db.session.commit()
+        return jsonify({"message": "Apartment deleted"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 # =========================
