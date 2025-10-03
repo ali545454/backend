@@ -1,54 +1,64 @@
-from flask import Blueprint, request, jsonify
-from werkzeug.security import check_password_hash
-from app import db
-from ..models.admin import Admin
+from flask import Blueprint, request, jsonify, current_app as app
+from .. import db
 from ..models.user import User
 from ..models.apartment import Apartment
+from ..models.review import Review
 from ..models.favorite import Favorite
-import datetime
-import jwt
-from flask import current_app as app
+from ..models.neighborhood import Neighborhood
+from ..models.admin import Admin
+from werkzeug.security import generate_password_hash, check_password_hash
+import jwt, datetime, uuid
 from functools import wraps
-import uuid as uuid_lib
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
 # =========================
-# helper - validate UUID
+# Helper: Require Admin JWT
 # =========================
-def is_valid_uuid(val):
-    try:
-        uuid_lib.UUID(str(val))
-        return True
-    except ValueError:
-        return False
-
-# =========================
-# ديكوريتور للتحقق من توكن الأدمن
-# =========================
-def token_required(f):
+def admin_required(f):
     @wraps(f)
-    def decorated(*args, **kwargs):
+    def wrapper(*args, **kwargs):
         token = request.headers.get("Authorization")
         if not token:
-            return jsonify({"error": "Token is missing"}), 401
-        if token.startswith("Bearer "):
-            token = token[7:]  # إزالة "Bearer " من البداية
+            return jsonify({"error": "Token missing"}), 401
+        
         try:
+            token = token.split(" ")[1]  # "Bearer <token>"
             data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
-            current_admin = Admin.query.get(data["admin_id"])
-            if not current_admin:
+            admin_id = data.get("admin_id")
+            admin = Admin.query.get(admin_id)
+            if not admin:
                 return jsonify({"error": "Invalid token"}), 401
-        except jwt.ExpiredSignatureError:
-            return jsonify({"error": "Token has expired"}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({"error": "Invalid token"}), 401
-        return f(current_admin, *args, **kwargs)
-    return decorated
+        except Exception:
+            return jsonify({"error": "Invalid or expired token"}), 401
+
+        return f(*args, **kwargs)
+    return wrapper
 
 # =========================
-# تسجيل الدخول
+# Auth
 # =========================
+@admin_bp.route("/register", methods=["POST"])
+def register_admin():
+    data = request.get_json()
+    if not data.get("username") or not data.get("email") or not data.get("password"):
+        return jsonify({"error": "البيانات ناقصة"}), 400
+
+    if Admin.query.filter((Admin.username == data["username"]) | (Admin.email == data["email"])).first():
+        return jsonify({"error": "الأدمن موجود بالفعل"}), 400
+
+    hashed_password = generate_password_hash(data["password"])
+    new_admin = Admin(
+        id=str(uuid.uuid4()),
+        username=data["username"],
+        email=data["email"],
+        password=hashed_password
+    )
+    db.session.add(new_admin)
+    db.session.commit()
+    return jsonify({"message": "تم إنشاء الأدمن بنجاح"}), 201
+
+
 @admin_bp.route("/login", methods=["POST"])
 def login_admin():
     data = request.json
@@ -68,130 +78,107 @@ def login_admin():
 
     return jsonify({
         "message": "Login successful",
-        "admin": {
-            "id": admin.id,
-            "username": admin.username,
-            "email": admin.email
-        },
+        "admin": {"id": admin.id, "username": admin.username, "email": admin.email},
         "token": token
     }), 200
 
 # =========================
-# إدارة الإدمنز
-# =========================
-@admin_bp.route("/", methods=["GET"])
-@token_required
-def get_admins(current_admin):
-    admins = Admin.query.all()
-    return jsonify([
-        {"id": a.id, "username": a.username, "email": a.email, "created_at": a.created_at}
-        for a in admins
-    ]), 200
-
-@admin_bp.route("/<string:admin_id>", methods=["DELETE"])
-@token_required
-def delete_admin(current_admin, admin_id):
-    if not is_valid_uuid(admin_id):
-        return jsonify({"error": "Invalid UUID"}), 400
-
-    admin = Admin.query.get(admin_id)
-    if not admin:
-        return jsonify({"error": "Admin not found"}), 404
-
-    db.session.delete(admin)
-    db.session.commit()
-    return jsonify({"message": "Admin deleted successfully"}), 200
-
-# =========================
-# إدارة المستخدمين
-# =========================
-@admin_bp.route("/users", methods=["GET"])
-@token_required
-def get_users(current_admin):
-    users = User.query.all()
-    return jsonify([
-        {
-            "id": u.id,
-            "uuid": u.uuid,
-            "name": u.full_name,
-            "email": u.email,
-            "role": u.role
-        }
-        for u in users
-    ]), 200
-@admin_bp.route("/users/<string:user_uuid>", methods=["DELETE"])
-@token_required
-def delete_user(current_admin, user_uuid):
-    if not is_valid_uuid(user_uuid):
-        return {"error": "Invalid UUID"}, 400
-
-    user = User.query.filter_by(uuid=user_uuid).first()
-    if not user:
-        return {"error": "User not found"}, 404
-
-    if user.role == "owner":
-        apartments = Apartment.query.filter_by(owner_id=user.id).all()
-        for apt in apartments:
-            Favorite.query.filter_by(apartment_id=apt.id).delete()
-            db.session.delete(apt)
-
-    db.session.delete(user)
-    db.session.commit()
-    return {"message": "User deleted successfully"}, 200
-
-
-
-# =========================
-# إدارة الشقق
-# =========================
-@admin_bp.route("/apartments", methods=["GET"])
-@token_required
-def get_apartments(current_admin):
-    apartments = Apartment.query.all()
-    return jsonify([
-        {
-            "id": a.id,
-            "title": a.title,
-            "address": a.address,
-            "price": a.price
-        }
-        for a in apartments
-    ]), 200
-
-@admin_bp.route("/apartments/<string:id>", methods=["DELETE"])
-@token_required
-def delete_apartment(current_admin, id):
-    if not is_valid_uuid(id):
-        return jsonify({"error": "Invalid UUID"}), 400
-
-    apartment = Apartment.query.get(id)
-    if not apartment:
-        return jsonify({"error": "Apartment not found"}), 404
-
-    try:
-        Favorite.query.filter_by(apartment_id=id).delete(synchronize_session=False)
-        # هنا ممكن تضيف حذف Reviews و Images
-        db.session.delete(apartment)
-        db.session.commit()
-        return {"message": "تم حذف الشقة بنجاح"}, 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
-
-# =========================
-# الإحصائيات
+# Stats
 # =========================
 @admin_bp.route("/stats", methods=["GET"])
-@token_required
-def get_stats(current_admin):
-    total_users = User.query.count()
-    total_students = User.query.filter_by(role="student").count()
-    total_owners = User.query.filter_by(role="owner").count()
-    total_apartments = Apartment.query.count()
-
+@admin_required
+def get_stats():
     return jsonify({
-        "total_users": total_users,
-        "total_students": total_students,
-        "total_owners": total_owners,
-        "total_apartments": total_apartments
-    }), 200
+        "users_count": User.query.count(),
+        "apartments_count": Apartment.query.count(),
+        "reviews_count": Review.query.count(),
+        "favorites_count": Favorite.query.count(),
+        "neighborhoods_count": Neighborhood.query.count(),
+    })
+
+# =========================
+# Users
+# =========================
+@admin_bp.route("/users", methods=["GET"])
+@admin_required
+def get_users():
+    users = User.query.all()
+    return jsonify([u.to_dict() for u in users])
+
+@admin_bp.route("/users/<string:user_id>", methods=["DELETE"])
+@admin_required
+def delete_user(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"message": "User deleted"})
+
+# =========================
+# Apartments
+# =========================
+@admin_bp.route("/apartments", methods=["GET"])
+@admin_required
+def get_apartments():
+    apartments = Apartment.query.all()
+    return jsonify([a.to_dict(include_all_images=True) for a in apartments])
+
+@admin_bp.route("/apartments/<string:apartment_id>", methods=["DELETE"])
+@admin_required
+def delete_apartment(apartment_id):
+    apartment = Apartment.query.get(apartment_id)
+    if not apartment:
+        return jsonify({"error": "Apartment not found"}), 404
+    db.session.delete(apartment)
+    db.session.commit()
+    return jsonify({"message": "Apartment deleted"})
+
+# =========================
+# Reviews
+# =========================
+@admin_bp.route("/reviews", methods=["GET"])
+@admin_required
+def get_reviews():
+    reviews = Review.query.all()
+    return jsonify([r.to_dict() for r in reviews])
+
+@admin_bp.route("/reviews/<int:review_id>", methods=["DELETE"])
+@admin_required
+def delete_review(review_id):
+    review = Review.query.get(review_id)
+    if not review:
+        return jsonify({"error": "Review not found"}), 404
+    db.session.delete(review)
+    db.session.commit()
+    return jsonify({"message": "Review deleted"})
+
+# =========================
+# Neighborhoods
+# =========================
+@admin_bp.route("/neighborhoods", methods=["GET"])
+@admin_required
+def get_neighborhoods():
+    neighborhoods = Neighborhood.query.all()
+    return jsonify([n.to_dict() for n in neighborhoods])
+
+@admin_bp.route("/neighborhoods", methods=["POST"])
+@admin_required
+def add_neighborhood():
+    data = request.get_json()
+    if not data or not data.get("name"):
+        return jsonify({"error": "Name is required"}), 400
+    neighborhood = Neighborhood(name=data["name"])
+    db.session.add(neighborhood)
+    db.session.commit()
+    return jsonify(neighborhood.to_dict()), 201
+
+@admin_bp.route("/neighborhoods/<int:neighborhood_id>", methods=["DELETE"])
+@admin_required
+def delete_neighborhood(neighborhood_id):
+    neighborhood = Neighborhood.query.get(neighborhood_id)
+    if not neighborhood:
+        return jsonify({"error": "Neighborhood not found"}), 404
+    db.session.delete(neighborhood)
+    db.session.commit()
+    return jsonify({"message": "Neighborhood deleted"})
