@@ -9,8 +9,19 @@ import datetime
 import jwt
 from flask import current_app as app
 from functools import wraps
+import uuid as uuid_lib
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
+
+# =========================
+# helper - validate UUID
+# =========================
+def is_valid_uuid(val):
+    try:
+        uuid_lib.UUID(str(val))
+        return True
+    except ValueError:
+        return False
 
 # =========================
 # ديكوريتور للتحقق من توكن الأدمن
@@ -77,9 +88,12 @@ def get_admins(current_admin):
         for a in admins
     ]), 200
 
-@admin_bp.route("/<int:admin_id>", methods=["DELETE"])
+@admin_bp.route("/<string:admin_id>", methods=["DELETE"])
 @token_required
 def delete_admin(current_admin, admin_id):
+    if not is_valid_uuid(admin_id):
+        return jsonify({"error": "Invalid UUID"}), 400
+
     admin = Admin.query.get(admin_id)
     if not admin:
         return jsonify({"error": "Admin not found"}), 404
@@ -105,9 +119,12 @@ def get_users(current_admin):
         for u in users
     ]), 200
 
-@admin_bp.route("/users/<int:user_id>", methods=["DELETE"])
+@admin_bp.route("/users/<string:user_id>", methods=["DELETE"])
 @token_required
 def delete_user(current_admin, user_id):
+    if not is_valid_uuid(user_id):
+        return {"error": "Invalid UUID"}, 400
+
     user = User.query.get(user_id)
     if not user:
         return {"error": "User not found"}, 404
@@ -115,7 +132,6 @@ def delete_user(current_admin, user_id):
     if user.role == "owner":
         apartments = Apartment.query.filter_by(owner_id=user_id).all()
         for apt in apartments:
-            # حذف كل المفضلات المرتبطة بالشقة
             Favorite.query.filter_by(apartment_id=apt.id).delete()
             db.session.delete(apt)
 
@@ -140,17 +156,25 @@ def get_apartments(current_admin):
         for a in apartments
     ]), 200
 
-@admin_bp.route("/apartments/<int:id>", methods=["DELETE"])
+@admin_bp.route("/apartments/<string:id>", methods=["DELETE"])
 @token_required
 def delete_apartment(current_admin, id):
-    apartment = Apartment.query.get_or_404(id)
+    if not is_valid_uuid(id):
+        return jsonify({"error": "Invalid UUID"}), 400
 
-    # حذف كل المفضلات المرتبطة بالشقة
-    Favorite.query.filter_by(apartment_id=id).delete()
+    apartment = Apartment.query.get(id)
+    if not apartment:
+        return jsonify({"error": "Apartment not found"}), 404
 
-    db.session.delete(apartment)
-    db.session.commit()
-    return {"message": "تم حذف الشقة بنجاح"}
+    try:
+        Favorite.query.filter_by(apartment_id=id).delete(synchronize_session=False)
+        # هنا ممكن تضيف حذف Reviews و Images
+        db.session.delete(apartment)
+        db.session.commit()
+        return {"message": "تم حذف الشقة بنجاح"}, 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 # =========================
 # الإحصائيات
