@@ -5,6 +5,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 import uuid as uuid_lib
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
+from flask_jwt_extended import unset_jwt_cookies
 
 auth_bp = Blueprint('auth_bp', __name__)
 
