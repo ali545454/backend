@@ -242,7 +242,7 @@ def get_verified_apartments():
     return jsonify([ap.to_dict() for ap in apartments]), 200
 
 
-# ✅ Get apartments of current owner
+# ✅ Get apartments of current owner + stats
 @apartment_bp.route('/my-apartments', methods=['GET'])
 @jwt_required()
 def get_my_apartments():
@@ -252,12 +252,34 @@ def get_my_apartments():
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
+    # ✅ كل شقق المالك
     apartments = Apartment.query.filter_by(owner_id=user.id).all()
-    
+
+    # ✅ لو مفيش شقق
+    if not apartments:
+        return jsonify({
+            "stats": {
+                "total_apartments": 0,
+                "total_views": 0,
+                "apartments_per_month": {}
+            },
+            "apartments": []
+        }), 200
+
+    # ---------- 🏠 بيانات الشقق ----------
     result = []
+    total_views = 0
+    apartments_per_month = {}
+
     for apt in apartments:
         main_image = apt.images.first() if hasattr(apt.images, "first") else (apt.images[0] if apt.images else None)
         views_count = ApartmentView.query.filter_by(apartment_id=apt.id).count()
+        total_views += views_count
+
+        # 📅 حساب عدد الشقق في كل شهر بناءً على created_at
+        if hasattr(apt, "created_at") and apt.created_at:
+            month_name = apt.created_at.strftime("%B %Y")  # مثال: "August 2025"
+            apartments_per_month[month_name] = apartments_per_month.get(month_name, 0) + 1
 
         result.append({
             "uuid": apt.uuid,
@@ -269,8 +291,19 @@ def get_my_apartments():
             "main_image": main_image.url if main_image else None,
             "views": views_count
         })
-    
-    return jsonify(result), 200
+
+    # ---------- 📊 الإحصائيات ----------
+    stats = {
+        "total_apartments": len(apartments),
+        "total_views": total_views,
+        "apartments_per_month": apartments_per_month
+    }
+
+    return jsonify({
+        "stats": stats,
+        "apartments": result
+    }), 200
+
 
 
 
