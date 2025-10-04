@@ -20,7 +20,7 @@ def register_static_routes(app):
 
 def register_routes(app):
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
-    app.register_blueprint(favorites_bp, url_prefix="/api/v1/favorite")
+    app.register_blueprint(favorites_bp, url_prefix="/api/v1/")
     app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")
     app.register_blueprint(apartment_bp, url_prefix="/api/v1/apartments")
     app.register_blueprint(views_bp)
