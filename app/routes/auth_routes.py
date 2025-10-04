@@ -135,13 +135,13 @@ def update_password():
 # ... (باقي الدوال مثل logout و update_profile تبقى كما هي لأنها صحيحة) ...
 
 
+
 @auth_bp.route("/logout", methods=["POST"])
-@jwt_required(locations=["cookies"])
+@jwt_required(optional=True, locations=["cookies"])
 def logout():
     response = jsonify({"message": "تم تسجيل الخروج بنجاح"})
     unset_jwt_cookies(response)
     return response, 200
-
 
 
 @auth_bp.route("/profile/update", methods=["PATCH"])
