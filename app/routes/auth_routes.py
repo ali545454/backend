@@ -1,4 +1,5 @@
 from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from flask import Blueprint, request, jsonify, make_response, current_app
 from app.models.user import User
