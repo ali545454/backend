@@ -133,11 +133,14 @@ def update_password():
     return jsonify({'message': 'تم تحديث كلمة المرور بنجاح'}), 200
 
 # ... (باقي الدوال مثل logout و update_profile تبقى كما هي لأنها صحيحة) ...
+
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
 def logout():
-    resp = jsonify({"message": "تم تسجيل الخروج بنجاح"})
-    return resp, 200
+    response = jsonify({"message": "تم تسجيل الخروج بنجاح"})
+    unset_jwt_cookies(response)  # ✅ دي اللي بتمسح كوكي JWT فعليًا
+    return response, 200
+
 
 
 @auth_bp.route("/profile/update", methods=["PATCH"])
