@@ -1,28 +1,37 @@
-# بيئة Flask أساسية
+# --- Flask Core ---
 Flask==3.0.3
 Werkzeug==3.0.3
 gunicorn==23.0.0
 
-# قواعد البيانات و ORM
+# --- Database & ORM ---
 Flask-SQLAlchemy==3.1.1
 SQLAlchemy==2.0.21
 Flask-Migrate==4.0.5
 PyMySQL==1.1.1
 mysqlclient==2.2.4
 
-# التعامل مع JSON + فالياديشن
+# --- Validation & Serialization ---
 marshmallow==3.21.3
+email-validator==2.2.0   # تحقق آمن من البريد الإلكتروني
 
-# Authentication
+# --- Authentication & Security ---
 Flask-JWT-Extended==4.6.0
 PyJWT==2.9.0
+bcrypt==4.1.2            # لتأمين كلمات المرور
+bleach==6.1.0            # تنقية المدخلات من XSS
+Flask-Limiter==3.5.0     # Rate limiting ضد brute-force
+Flask-Talisman==1.1.0    # إضافة هيدرز حماية مثل CSP وHSTS
 
-# CORS
+# --- CORS ---
 Flask-Cors==5.0.0
 
-# رفع الصور والتعامل معها
+# --- File Uploads & Images ---
 Pillow==10.4.0
-cloudinary
+cloudinary==1.41.0
 
-# بيئة وتشغيل
-python-dotenv
+# --- Environment Variables ---
+python-dotenv==1.0.1
+
+# --- Optional Utilities ---
+itsdangerous==2.2.0      # لتوقيع الرموز بشكل آمن
+requests==2.32.3         # طلبات HTTP (مثلاً لو هتستخدم API خارجي)
