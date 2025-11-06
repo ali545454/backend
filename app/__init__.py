@@ -6,6 +6,8 @@ from .config import Config
 from flask_jwt_extended import JWTManager
 from flask import send_from_directory
 import os
+import pymysql
+pymysql.install_as_MySQLdb()
 db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
