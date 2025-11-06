@@ -5,7 +5,6 @@ from .user_routes import user_bp
 from .favorite_routes import favorites_bp 
 from .image_routes import image_bp
 from .neighborhood_routes import neighborhood_bp
-from .chat import chat_bp
 from .admin_routes import admin_bp
 # لو Blueprint موجود في routes/views.py
 from .views_routes import views_bp
@@ -28,6 +27,5 @@ def register_routes(app):
     app.register_blueprint(user_bp, url_prefix="/api/v1/user")
 # في app/routes/__init__.py
     app.register_blueprint(neighborhood_bp, url_prefix="/api/v1/")
-    app.register_blueprint(chat_bp, url_prefix="/api/v1/chat")
     # ✅ لتفعيل الصور
     register_static_routes(app)
