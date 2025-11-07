@@ -8,7 +8,7 @@ from .neighborhood_routes import neighborhood_bp
 from .admin_routes import admin_bp
 # لو Blueprint موجود في routes/views.py
 from .views_routes import views_bp
-
+# ىخفاهىل
 from flask import send_from_directory
 import os
 
