@@ -15,36 +15,31 @@ jwt = JWTManager()
 
 def create_app():
     app = Flask(__name__)
+    app.config.from_object('app.config.Config')
+
+    # ✅ إعداد CORS (اسم الدومين الحقيقي بتاع الواجهة)
     CORS(
         app,
         supports_credentials=True,
-        resources={r"*": {"origins": "https://yallasakn.vercel.app"}}
+        resources={r"/*": {"origins": ["https://yallasakn.vercel.app"]}}
     )
 
+    # ✅ إعدادات JWT Cookies
+    app.config["JWT_SECRET_KEY"] = "super-secret-key"  # غيّرها لمفتاح قوي
+    app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+    app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token_cookie"
+    app.config["JWT_COOKIE_SECURE"] = True  # لازم True لأن الموقع HTTPS
+    app.config["JWT_COOKIE_SAMESITE"] = "None"  # 👈 لازم None لما تتعامل من دومين مختلف
+    app.config["JWT_COOKIE_HTTPONLY"] = True
+    app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # مؤقتًا لغلق الـ CSRF لو لسه ما طبّقته
 
-
-
-
-    app.config.from_object('app.config.Config')
-
-    # ✅ إعدادات JWT عشان يقرأ من الكوكي
-    app.config["JWT_SECRET_KEY"] = "super-secret-key"  # غيرها لمفتاح قوي
-    app.config["JWT_TOKEN_LOCATION"] = ["cookies"]     # نقرأ التوكن من الكوكي
-    app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token_cookie"  # اسم الكوكي
-    app.config["JWT_COOKIE_SECURE"] = True            # خليه True في HTTPS
-    app.config["JWT_COOKIE_SAMESITE"] = "None"
-    app.config["JWT_COOKIE_CSRF_PROTECT"] = False
-     # وقف CSRF Tokens مؤقتًا
-
+    # باقي الإعدادات
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
 
-
-    # تأكد من وجود مجلد الرفع
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-    # راوت لخدمة الصور
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
