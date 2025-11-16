@@ -73,6 +73,8 @@ def create_apartment():
         new_apartment = Apartment(
             title=data.get('title'),
             description=data.get('description'),
+            latitude=data.get("latitude"),
+            longitude=data.get("longitude"),
             address=data.get('address'),
             neighborhood_id=int(data.get('neighborhood_id')),
             owner_id=user.id,
@@ -118,7 +120,10 @@ def create_apartment():
 
         return jsonify({
             'message': 'Apartment created successfully',
-            'apartment_id': new_apartment.id
+            'apartment_id': new_apartment.id,
+            "title": new_apartment.title,
+            "latitude": new_apartment.latitude,
+            "longitude": new_apartment.longitude
         }), 201
 
     except Exception as e:

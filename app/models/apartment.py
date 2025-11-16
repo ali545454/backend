@@ -17,6 +17,8 @@ class Apartment(db.Model):
     kitchens = db.Column(db.Integer, nullable=False)
     total_beds = db.Column(db.Integer, nullable=False)
     available_beds = db.Column(db.Integer, nullable=False)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
 
      # نوع السكن (شقة كاملة، غرفة، استوديو، مشترك)
     residence_type = db.Column(db.String(50), nullable=False)
