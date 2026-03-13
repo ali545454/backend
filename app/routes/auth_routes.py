@@ -102,7 +102,11 @@ def register():
         # Prevent user enumeration: respond with generic error if exists
         if User.query.filter_by(email=email).first():
             # small delay could be added here (time.sleep) to reduce timing attacks
-            return jsonify({"error": "لا يمكن إكمال الطلب"}), 400
+            return jsonify({"error": "البريد الإلكتروني مستخدم بالفعل"}), 400
+
+        # Check if phone is already used
+        if phone and User.query.filter_by(phone=phone).first():
+            return jsonify({"error": "رقم الهاتف مستخدم بالفعل"}), 400
 
         # sanitize optional fields and parse date
         phone = sanitize_str(data.get("phone") or "")
