@@ -4,7 +4,11 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import Blueprint, request, jsonify, make_response, current_app
 from app.models.user import User
 from app import db
-from flask_jwt_extended import create_access_token, unset_jwt_cookies, set_access_cookies
+from flask_jwt_extended import (
+    create_access_token,
+    unset_jwt_cookies,
+    set_access_cookies,
+)
 import uuid as uuid_lib
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime, timedelta
@@ -16,11 +20,12 @@ import logging
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-auth_bp = Blueprint('auth_bp', __name__)
+auth_bp = Blueprint("auth_bp", __name__)
 logger = logging.getLogger(__name__)
 
 # NOTE: initialize Limiter in create_app and import it instead if you prefer app-global limiter.
 limiter = Limiter(key_func=get_remote_address)
+
 
 # -------------------- Helpers --------------------
 def sanitize_str(s: str) -> str:
@@ -29,22 +34,25 @@ def sanitize_str(s: str) -> str:
     # Remove HTML/JS and strip tags
     return bleach.clean(s, tags=[], strip=True).strip()
 
+
 def is_valid_email(email: str) -> bool:
     if not email:
         return False
     # Basic regex; for stricter validation consider email_validator pkg
     return bool(re.match(r"^[^@]+@[^@]+\.[^@]+$", email))
 
+
 def is_strong_password(pw: str) -> bool:
     if not pw or len(pw) < 8:
         return False
     checks = [
-        bool(re.search(r'[a-z]', pw)),
-        bool(re.search(r'[A-Z]', pw)),
-        bool(re.search(r'[0-9]', pw)),
-        bool(re.search(r'[^A-Za-z0-9]', pw))
+        bool(re.search(r"[a-z]", pw)),
+        bool(re.search(r"[A-Z]", pw)),
+        bool(re.search(r"[0-9]", pw)),
+        bool(re.search(r"[^A-Za-z0-9]", pw)),
     ]
     return sum(checks) >= 3
+
 
 def clean_payload(payload: dict) -> dict:
     """Remove empty fields and sanitize strings"""
@@ -60,9 +68,11 @@ def clean_payload(payload: dict) -> dict:
             out[k] = v
     return out
 
+
 # -------------------- Routes --------------------
 
-@auth_bp.route('/register', methods=['POST'])
+
+@auth_bp.route("/register", methods=["POST"])
 @limiter.limit("5 per minute")  # rate-limit registration per IP
 def register():
     try:
@@ -80,7 +90,14 @@ def register():
             return jsonify({"error": "صيغة البريد الإلكتروني غير صحيحة"}), 400
 
         if not is_strong_password(password):
-            return jsonify({"error": "كلمة المرور ضعيفة. استخدم 8+ أحرف وتضمّن أرقام/حروف كبيرة/رموز"}), 400
+            return (
+                jsonify(
+                    {
+                        "error": "كلمة المرور ضعيفة. استخدم 8+ أحرف وتضمّن أرقام/حروف كبيرة/رموز"
+                    }
+                ),
+                400,
+            )
 
         # Prevent user enumeration: respond with generic error if exists
         if User.query.filter_by(email=email).first():
@@ -113,7 +130,7 @@ def register():
             academic_year=academic_year or None,
             college=faculty or None,
             university=university or None,
-            uuid=str(uuid_lib.uuid4())
+            uuid=str(uuid_lib.uuid4()),
         )
         # ensure set_password uses a secure hash (bcrypt)
         user.set_password(password)
@@ -124,11 +141,16 @@ def register():
         expires = timedelta(hours=4)
         token = create_access_token(identity=user.uuid, expires_delta=expires)
 
-        resp = make_response(jsonify({
-            "message": "تم إنشاء الحساب وتسجيل الدخول",
-            # DO NOT include sensitive fields here (e.g., password hash)
-            "user": user.to_dict()
-        }), 201)
+        resp = make_response(
+            jsonify(
+                {
+                    "message": "تم إنشاء الحساب وتسجيل الدخول",
+                    # DO NOT include sensitive fields here (e.g., password hash)
+                    "user": user.to_dict(),
+                }
+            ),
+            201,
+        )
 
         # set cookie using library helper (respects app config)
         set_access_cookies(resp, token)
@@ -142,7 +164,7 @@ def register():
         return jsonify({"error": "حدث خطأ أثناء إنشاء الحساب"}), 500
 
 
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route("/login", methods=["POST"])
 @limiter.limit("10 per minute")  # rate-limit login attempts
 def login():
     try:
@@ -163,10 +185,9 @@ def login():
         expires = timedelta(hours=4)
         token = create_access_token(identity=user.uuid, expires_delta=expires)
 
-        resp = make_response(jsonify({
-            "message": "تم تسجيل الدخول بنجاح",
-            "user": user.to_dict()
-        }))
+        resp = make_response(
+            jsonify({"message": "تم تسجيل الدخول بنجاح", "user": user.to_dict()})
+        )
         set_access_cookies(resp, token)
         return resp
 
@@ -174,47 +195,49 @@ def login():
         logger.exception("Login error")
         return jsonify({"error": "حدث خطأ أثناء تسجيل الدخول"}), 500
 
-@auth_bp.route('/profile', methods=['GET'])
+
+@auth_bp.route("/profile", methods=["GET"])
 @jwt_required()
 def profile():
     # هذا الكود الآن سيعمل بشكل صحيح لأن الهوية هي uuid
     user_uuid = get_jwt_identity()
     user = User.query.filter_by(uuid=user_uuid).first()
-    
+
     if not user:
         return jsonify({"error": "User not found"}), 404
-        
+
     return jsonify(user.to_dict()), 200
 
-@auth_bp.route('/update-password', methods=['POST'])
+
+@auth_bp.route("/update-password", methods=["POST"])
 @jwt_required()
 def update_password():
     # ✅ *** التعديل الثالث: البحث عن المستخدم باستخدام UUID ***
-    user_uuid = get_jwt_identity() 
+    user_uuid = get_jwt_identity()
     data = request.get_json()
 
-    old_password = data.get('old_password')
-    new_password = data.get('new_password')
+    old_password = data.get("old_password")
+    new_password = data.get("new_password")
 
     if not old_password or not new_password:
-        return jsonify({'error': 'يرجى إدخال كلمة المرور القديمة والجديدة'}), 400
+        return jsonify({"error": "يرجى إدخال كلمة المرور القديمة والجديدة"}), 400
 
     # البحث باستخدام filter_by(uuid=...) بدلاً من .get()
     user = User.query.filter_by(uuid=user_uuid).first()
 
     if not user:
-        return jsonify({'error': 'المستخدم غير موجود'}), 404
+        return jsonify({"error": "المستخدم غير موجود"}), 404
 
     if not check_password_hash(user.password_hash, old_password):
-        return jsonify({'error': 'كلمة المرور القديمة غير صحيحة'}), 401
+        return jsonify({"error": "كلمة المرور القديمة غير صحيحة"}), 401
 
     user.password_hash = generate_password_hash(new_password)
     db.session.commit()
 
-    return jsonify({'message': 'تم تحديث كلمة المرور بنجاح'}), 200
+    return jsonify({"message": "تم تحديث كلمة المرور بنجاح"}), 200
+
 
 # ... (باقي الدوال مثل logout و update_profile تبقى كما هي لأنها صحيحة) ...
-
 
 
 @auth_bp.route("/logout", methods=["POST"])
@@ -237,7 +260,7 @@ def update_profile():
     data = request.get_json()
     if not data:
         return jsonify({"msg": "No data provided"}), 400
-    
+
     # ... (منطق التحديث يبقى كما هو) ...
     allowed_fields = ["full_name", "phone", "university", "college", "academic_year"]
     for field in allowed_fields:
@@ -252,6 +275,7 @@ def update_profile():
         resp = jsonify({"message": "تم تسجيل الخروج بنجاح"})
         resp.delete_cookie("token")
         return resp
+
 
 @auth_bp.route("/check", methods=["GET"])
 @jwt_required(locations=["cookies"])

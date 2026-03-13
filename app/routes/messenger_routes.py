@@ -3,6 +3,7 @@ from .models import db, Conversation, ConversationMember, Message
 
 messenger_bp = Blueprint("messenger", __name__, url_prefix="/messenger")
 
+
 @messenger_bp.route("/conversations", methods=["POST"])
 def create_conversation():
     data = request.json
@@ -23,7 +24,7 @@ def send_message():
     msg = Message(
         conversation_id=data["conversation_id"],
         sender_id=data["sender_id"],
-        text=data["text"]
+        text=data["text"],
     )
     db.session.add(msg)
     db.session.commit()

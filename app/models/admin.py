@@ -3,6 +3,7 @@ from app import db
 from datetime import datetime
 import uuid
 
+
 class Admin(db.Model):
     __tablename__ = "admins"
 

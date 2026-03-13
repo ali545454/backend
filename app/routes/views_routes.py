@@ -6,6 +6,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 
 views_bp = Blueprint("views", __name__, url_prefix="/api/views")
+
+
 @views_bp.route("/track/<string:uuid>", methods=["POST"])
 def track_view(uuid):
     apartment = Apartment.query.filter_by(uuid=uuid).first()
@@ -14,7 +16,7 @@ def track_view(uuid):
 
     ip_address = request.remote_addr
     now = datetime.utcnow()
-    spam_delay = now - timedelta(seconds=360) 
+    spam_delay = now - timedelta(seconds=360)
 
     user_id = None
     token = request.headers.get("Authorization")
@@ -28,12 +30,12 @@ def track_view(uuid):
     if user_id:
         existing_view = ApartmentView.query.filter(
             ApartmentView.apartment_id == apartment.id,
-            ApartmentView.user_id == user_id  # أو حتى None لو مش مسجل
+            ApartmentView.user_id == user_id,  # أو حتى None لو مش مسجل
         ).first()
     else:
         existing_view = ApartmentView.query.filter(
             ApartmentView.apartment_id == apartment.id,
-            ApartmentView.created_at >= spam_delay
+            ApartmentView.created_at >= spam_delay,
         ).first()
 
     if existing_view:
@@ -44,7 +46,7 @@ def track_view(uuid):
         apartment_id=apartment.id,
         user_id=user_id,
         ip_address=ip_address,
-        created_at=now
+        created_at=now,
     )
     db.session.add(view)
     db.session.commit()

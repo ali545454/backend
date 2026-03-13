@@ -4,9 +4,12 @@ import uuid
 import os
 from datetime import datetime
 
+
 class Apartment(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    uuid = db.Column(db.String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
+    uuid = db.Column(
+        db.String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4())
+    )
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
     address = db.Column(db.String(255), nullable=False)
@@ -20,12 +23,11 @@ class Apartment(db.Model):
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
 
-     # نوع السكن (شقة كاملة، غرفة، استوديو، مشترك)
+    # نوع السكن (شقة كاملة، غرفة، استوديو، مشترك)
     residence_type = db.Column(db.String(50), nullable=False)
 
     # نوع الساكن المفضل (شباب، بنات، عائلات، الكل)
     preferred_tenant_type = db.Column(db.String(50), nullable=True)
-
 
     # بيانات التواصل
     whatsapp_number = db.Column(db.String(20), nullable=True)
@@ -43,30 +45,38 @@ class Apartment(db.Model):
     has_ac = db.Column(db.Boolean, default=False)
     has_balcony = db.Column(db.Boolean, default=False)
     has_washing_machine = db.Column(db.Boolean, default=False)  # غسالة
-    has_oven = db.Column(db.Boolean, default=False)             # بوتجاز/فرن
-    has_gas = db.Column(db.Boolean, default=False)              # غاز طبيعي
-    near_transport = db.Column(db.Boolean, default=False)       # قريب من المواصلات
+    has_oven = db.Column(db.Boolean, default=False)  # بوتجاز/فرن
+    has_gas = db.Column(db.Boolean, default=False)  # غاز طبيعي
+    near_transport = db.Column(db.Boolean, default=False)  # قريب من المواصلات
 
     # مدة الإيجار المفضلة
     # (ترم واحد، سنة دراسية، شهر، مرن)
 
     # ملاحظات المالك
-  
+
     # (ممنوع التدخين، ممنوع الشغب والضوضاء، ممنوع إزعاج الجيران...)
 
     # تاريخ إضافة الشقة
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # --- العلاقات ---
-    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    owner = db.relationship('User', back_populates='apartments')
+    owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    owner = db.relationship("User", back_populates="apartments")
 
-    neighborhood_id = db.Column(db.Integer, db.ForeignKey('neighborhood.id'), nullable=False)
-    neighborhood = db.relationship('Neighborhood', back_populates='apartments')
+    neighborhood_id = db.Column(
+        db.Integer, db.ForeignKey("neighborhood.id"), nullable=False
+    )
+    neighborhood = db.relationship("Neighborhood", back_populates="apartments")
 
-    reviews = db.relationship('Review', back_populates='apartment', cascade="all, delete-orphan")
-    images = db.relationship('Image', back_populates='apartment', cascade='all, delete-orphan', lazy='select')
-    favorites = db.relationship('Favorite', back_populates='apartment', lazy=True   , cascade="all, delete-orphan")
+    reviews = db.relationship(
+        "Review", back_populates="apartment", cascade="all, delete-orphan"
+    )
+    images = db.relationship(
+        "Image", back_populates="apartment", cascade="all, delete-orphan", lazy="select"
+    )
+    favorites = db.relationship(
+        "Favorite", back_populates="apartment", lazy=True, cascade="all, delete-orphan"
+    )
 
     # --- الخصائص المحسوبة ---
     @property
@@ -83,7 +93,7 @@ class Apartment(db.Model):
 
     # --- دالة التحويل لقاموس ---
     def to_dict(self, user_favorite_apartment_ids=None, include_all_images=False):
-        base_url = request.host_url.rstrip('/')
+        base_url = request.host_url.rstrip("/")
 
         # قائمة المميزات
         features = []
@@ -105,37 +115,38 @@ class Apartment(db.Model):
             features.append("قريب من المواصلات")
 
         data = {
-            'id': self.id,
-            'uuid': self.uuid,
-            'title': self.title,
-            'description': self.description,
-            'address': self.address,
-            'price': self.price,
-            'bedrooms': self.rooms,
-            'bathrooms': self.bathrooms,
-            'kitchens': self.kitchens,
-            'totalBeds': self.total_beds,
-            'availableBeds': self.available_beds,
-            'residenceType': self.residence_type,
-            'whatsappNumber': self.whatsapp_number,
-            'isVerified': self.is_verified,
-            'ownerName': self.owner.full_name if self.owner else "مالك غير معروف",
-            'neighborhood': self.neighborhood.name if self.neighborhood else "منطقة غير محددة",
-            'area': self.area,
-            'preferred_tenant_type': self.preferred_tenant_type,
-            'floorNumber': self.floor_number,
-            'features': features,
-            'createdAt': self.created_at.isoformat() if self.created_at else None,
-            'rating': self.average_rating,
-            'reviewCount': self.review_count,
-            'isFavorite': self.id in (user_favorite_apartment_ids or []),
+            "id": self.id,
+            "uuid": self.uuid,
+            "title": self.title,
+            "description": self.description,
+            "address": self.address,
+            "price": self.price,
+            "bedrooms": self.rooms,
+            "bathrooms": self.bathrooms,
+            "kitchens": self.kitchens,
+            "totalBeds": self.total_beds,
+            "availableBeds": self.available_beds,
+            "residenceType": self.residence_type,
+            "whatsappNumber": self.whatsapp_number,
+            "isVerified": self.is_verified,
+            "ownerName": self.owner.full_name if self.owner else "مالك غير معروف",
+            "neighborhood": (
+                self.neighborhood.name if self.neighborhood else "منطقة غير محددة"
+            ),
+            "area": self.area,
+            "preferred_tenant_type": self.preferred_tenant_type,
+            "floorNumber": self.floor_number,
+            "features": features,
+            "createdAt": self.created_at.isoformat() if self.created_at else None,
+            "rating": self.average_rating,
+            "reviewCount": self.review_count,
+            "isFavorite": self.id in (user_favorite_apartment_ids or []),
         }
 
         if include_all_images:
-            data['images'] = [img.url for img in (self.images or [])]
+            data["images"] = [img.url for img in (self.images or [])]
         else:
             first_image = self.images[0] if self.images else None
-            data['main_image'] = first_image.url if first_image else None
-
+            data["main_image"] = first_image.url if first_image else None
 
         return data

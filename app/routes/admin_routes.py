@@ -12,6 +12,7 @@ from functools import wraps
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
+
 # =========================
 # Helper: Require Admin JWT
 # =========================
@@ -32,7 +33,9 @@ def admin_required(f):
         except Exception:
             return jsonify({"error": "Invalid or expired token"}), 401
         return f(*args, **kwargs)
+
     return wrapper
+
 
 # =========================
 # Admin Auth
@@ -43,7 +46,9 @@ def register_admin():
     if not data.get("username") or not data.get("email") or not data.get("password"):
         return jsonify({"error": "البيانات ناقصة"}), 400
 
-    if Admin.query.filter((Admin.username == data["username"]) | (Admin.email == data["email"])).first():
+    if Admin.query.filter(
+        (Admin.username == data["username"]) | (Admin.email == data["email"])
+    ).first():
         return jsonify({"error": "الأدمن موجود بالفعل"}), 400
 
     hashed_password = generate_password_hash(data["password"])
@@ -51,7 +56,7 @@ def register_admin():
         id=str(uuid.uuid4()),
         username=data["username"],
         email=data["email"],
-        password=hashed_password
+        password=hashed_password,
     )
     db.session.add(new_admin)
     db.session.commit()
@@ -68,20 +73,23 @@ def login_admin():
     token = jwt.encode(
         {
             "admin_id": admin.id,
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=12)
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=12),
         },
         app.config["SECRET_KEY"],
-        algorithm="HS256"
+        algorithm="HS256",
     )
 
-    response = jsonify({
-        "message": "Login successful",
-        "admin": {"id": admin.id, "username": admin.username, "email": admin.email},
-        "token": token
-    })
+    response = jsonify(
+        {
+            "message": "Login successful",
+            "admin": {"id": admin.id, "username": admin.username, "email": admin.email},
+            "token": token,
+        }
+    )
     # إذا تحب تخزن الكوكيز:
     response.set_cookie("admin_token", token, httponly=True)
     return response
+
 
 # =========================
 # Stats
@@ -89,13 +97,16 @@ def login_admin():
 @admin_bp.route("/stats", methods=["GET"])
 @admin_required
 def get_stats():
-    return jsonify({
-        "users_count": User.query.count(),
-        "apartments_count": Apartment.query.count(),
-        "reviews_count": Review.query.count(),
-        "favorites_count": Favorite.query.count(),
-        "neighborhoods_count": Neighborhood.query.count(),
-    })
+    return jsonify(
+        {
+            "users_count": User.query.count(),
+            "apartments_count": Apartment.query.count(),
+            "reviews_count": Review.query.count(),
+            "favorites_count": Favorite.query.count(),
+            "neighborhoods_count": Neighborhood.query.count(),
+        }
+    )
+
 
 # =========================
 # Users
@@ -106,6 +117,7 @@ def get_users():
     users = User.query.all()
     return jsonify([u.to_dict() for u in users])
 
+
 @admin_bp.route("/users/<string:user_uuid>", methods=["DELETE"])
 @admin_required
 def delete_user(user_uuid):
@@ -115,6 +127,7 @@ def delete_user(user_uuid):
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "User deleted"})
+
 
 # =========================
 # Apartments
@@ -143,6 +156,7 @@ def delete_apartment(apartment_uuid):
         db.session.rollback()  # إعادة الوضع السابق قبل الخطأ
         return jsonify({"error": str(e)}), 400
 
+
 # =========================
 # Reviews
 # =========================
@@ -151,6 +165,7 @@ def delete_apartment(apartment_uuid):
 def get_reviews():
     reviews = Review.query.all()
     return jsonify([r.to_dict() for r in reviews])
+
 
 @admin_bp.route("/reviews/<int:review_id>", methods=["DELETE"])
 @admin_required
@@ -162,6 +177,7 @@ def delete_review(review_id):
     db.session.commit()
     return jsonify({"message": "Review deleted"})
 
+
 # =========================
 # Neighborhoods
 # =========================
@@ -170,6 +186,7 @@ def delete_review(review_id):
 def get_neighborhoods():
     neighborhoods = Neighborhood.query.all()
     return jsonify([n.to_dict() for n in neighborhoods])
+
 
 @admin_bp.route("/neighborhoods", methods=["POST"])
 @admin_required
@@ -181,6 +198,7 @@ def add_neighborhood():
     db.session.add(neighborhood)
     db.session.commit()
     return jsonify(neighborhood.to_dict()), 201
+
 
 @admin_bp.route("/neighborhoods/<int:neighborhood_id>", methods=["DELETE"])
 @admin_required

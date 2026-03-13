@@ -6,6 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 views_bp = Blueprint("views", __name__, url_prefix="/api/views")
 
+
 @views_bp.route("/owner/details", methods=["GET"])
 @jwt_required()  # تأكد أن المالك مسجل دخول
 def owner_apartment_views():
@@ -17,14 +18,16 @@ def owner_apartment_views():
 
     for apartment in apartments:
         views_count = ApartmentView.query.filter_by(apartment_id=apartment.id).count()
-        result.append({
-            "apartment_id": apartment.id,
-            "apartment_uuid": apartment.uuid,
-            "title": apartment.title,
-            "address": apartment.address,
-            "price": apartment.price,
-            "rooms": apartment.rooms,
-            "views": views_count
-        })
+        result.append(
+            {
+                "apartment_id": apartment.id,
+                "apartment_uuid": apartment.uuid,
+                "title": apartment.title,
+                "address": apartment.address,
+                "price": apartment.price,
+                "rooms": apartment.rooms,
+                "views": views_count,
+            }
+        )
 
     return jsonify(result), 200
