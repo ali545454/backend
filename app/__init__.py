@@ -29,7 +29,9 @@ def create_app(test_config=None):
     CORS(
         app,
         supports_credentials=True,
-        resources={r"/*": {"origins": ["https://yallasakn.vercel.app"]}},
+        resources={r"/api/*": {"origins": ["https://yallasakn.vercel.app"]}},
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "OPTIONS"],
     )
 
     # ✅ إعدادات JWT Cookies
