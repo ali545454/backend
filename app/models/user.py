@@ -14,6 +14,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
+    google_id = db.Column(db.String(255), unique=True, nullable=True)
     phone = db.Column(db.String(20), unique=True, nullable=True)
     birth_date = db.Column(db.Date, nullable=True)
     gender = db.Column(db.String(10), nullable=True)
@@ -57,6 +58,7 @@ class User(db.Model):
             "uuid": self.uuid,
             "full_name": self.full_name,
             "email": self.email,
+            "google_id": self.google_id,
             "phone": self.phone,
             # ✅ (التصحيح رقم 3) تحويل التاريخ إلى نص
             "avatar": getattr(self, "avatar_url", None),

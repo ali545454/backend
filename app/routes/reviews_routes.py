@@ -10,10 +10,15 @@ review_bp = Blueprint("review_bp", __name__)
 
 # ✅ إنشاء تقييم لشقة
 @review_bp.route("/reviews/create", methods=["POST"])
+@review_bp.route("/create", methods=["POST"])
 @jwt_required()
 def create_review():
-    user_id = get_jwt_identity()
-    data = request.get_json()
+    user_uuid = get_jwt_identity()
+    user = User.query.filter_by(uuid=user_uuid).first()
+    if not user:
+        return jsonify({"error": "المستخدم غير موجود"}), 404
+
+    data = request.get_json() or {}
 
     apartment_id = data.get("apartment_id")
     rating = data.get("rating")
@@ -32,13 +37,13 @@ def create_review():
 
     # تحقق إن المستخدم لم يقيم هذه الشقة من قبل
     existing = Review.query.filter_by(
-        user_id=user_id, apartment_id=apartment_id
+        user_id=user.id, apartment_id=apartment_id
     ).first()
     if existing:
         return jsonify({"error": "لقد قمت بتقييم هذه الشقة من قبل"}), 400
 
     review = Review(
-        user_id=user_id, apartment_id=apartment_id, rating=rating, comment=comment
+        user_id=user.id, apartment_id=apartment_id, rating=rating, comment=comment
     )
 
     db.session.add(review)
@@ -52,6 +57,7 @@ def create_review():
 
 # ✅ جلب كل التقييمات لشقة
 @review_bp.route("/reviews/apartment/<int:apartment_id>", methods=["GET"])
+@review_bp.route("/apartment/<int:apartment_id>", methods=["GET"])
 def get_reviews_for_apartment(apartment_id):
     apartment = Apartment.query.get(apartment_id)
     if not apartment:
@@ -63,15 +69,20 @@ def get_reviews_for_apartment(apartment_id):
 
 # ✅ حذف تقييم
 @review_bp.route("/reviews/<int:review_id>/delete", methods=["DELETE"])
+@review_bp.route("/<int:review_id>/delete", methods=["DELETE"])
 @jwt_required()
 def delete_review(review_id):
-    user_id = get_jwt_identity()
+    user_uuid = get_jwt_identity()
+    user = User.query.filter_by(uuid=user_uuid).first()
+    if not user:
+        return jsonify({"error": "المستخدم غير موجود"}), 404
+
     review = Review.query.get(review_id)
 
     if not review:
         return jsonify({"error": "التقييم غير موجود"}), 404
 
-    if review.user_id != user_id:
+    if review.user_id != user.id:
         return jsonify({"error": "غير مصرح لك بحذف هذا التقييم"}), 403
 
     db.session.delete(review)
@@ -82,18 +93,23 @@ def delete_review(review_id):
 
 # ✅ تعديل تقييم
 @review_bp.route("/reviews/<int:review_id>/update", methods=["PATCH"])
+@review_bp.route("/<int:review_id>/update", methods=["PATCH"])
 @jwt_required()
 def update_review(review_id):
-    user_id = get_jwt_identity()
+    user_uuid = get_jwt_identity()
+    user = User.query.filter_by(uuid=user_uuid).first()
+    if not user:
+        return jsonify({"error": "المستخدم غير موجود"}), 404
+
     review = Review.query.get(review_id)
 
     if not review:
         return jsonify({"error": "التقييم غير موجود"}), 404
 
-    if review.user_id != user_id:
+    if review.user_id != user.id:
         return jsonify({"error": "غير مصرح لك بتعديل هذا التقييم"}), 403
 
-    data = request.get_json()
+    data = request.get_json() or {}
     rating = data.get("rating", review.rating)
     comment = data.get("comment", review.comment)
 
@@ -112,13 +128,14 @@ def update_review(review_id):
 
 # ✅ جلب كل التقييمات للمستخدم
 @review_bp.route("/reviews/user", methods=["GET"])
+@review_bp.route("/user", methods=["GET"])
 @jwt_required()
 def get_user_reviews():
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    user_uuid = get_jwt_identity()
+    user = User.query.filter_by(uuid=user_uuid).first()
 
     if not user:
         return jsonify({"error": "المستخدم غير موجود"}), 404
 
-    reviews = Review.query.filter_by(user_id=user_id).all()
+    reviews = Review.query.filter_by(user_id=user.id).all()
     return jsonify([r.to_dict() for r in reviews]), 200

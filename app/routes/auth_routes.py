@@ -1,4 +1,3 @@
-from flask_jwt_extended import jwt_required
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from flask import Blueprint, request, jsonify, make_response, current_app
@@ -15,6 +14,8 @@ from datetime import datetime, timedelta
 import re
 import bleach
 import logging
+import os
+
 
 # Rate limiting
 from flask_limiter import Limiter
@@ -69,6 +70,29 @@ def clean_payload(payload: dict) -> dict:
     return out
 
 
+def verify_google_id_token(token: str) -> dict:
+    client_id = current_app.config.get("GOOGLE_CLIENT_ID") or os.getenv("GOOGLE_CLIENT_ID")
+    if not client_id:
+        raise ValueError("GOOGLE_CLIENT_ID is not configured")
+
+    try:
+        from google.auth.transport import requests as google_requests
+        from google.oauth2 import id_token as google_id_token
+    except ImportError as exc:
+        raise ValueError("google-auth package is not installed") from exc
+
+    return google_id_token.verify_oauth2_token(
+        token,
+        google_requests.Request(),
+        client_id,
+    )
+
+
+def generate_random_password() -> str:
+    # fallback password for social-login users
+    return f"G!{uuid_lib.uuid4().hex}aA1"
+
+
 # -------------------- Routes --------------------
 
 
@@ -104,12 +128,12 @@ def register():
             # small delay could be added here (time.sleep) to reduce timing attacks
             return jsonify({"error": "البريد الإلكتروني مستخدم بالفعل"}), 400
 
+        # sanitize optional fields and parse date
+        phone = sanitize_str(data.get("phone") or "")
+
         # Check if phone is already used
         if phone and User.query.filter_by(phone=phone).first():
             return jsonify({"error": "رقم الهاتف مستخدم بالفعل"}), 400
-
-        # sanitize optional fields and parse date
-        phone = sanitize_str(data.get("phone") or "")
         birth_date = None
         if data.get("birthDate"):
             try:
@@ -198,6 +222,67 @@ def login():
     except Exception:
         logger.exception("Login error")
         return jsonify({"error": "حدث خطأ أثناء تسجيل الدخول"}), 500
+
+
+@auth_bp.route("/google-login", methods=["POST"])
+@limiter.limit("20 per minute")
+def google_login():
+    data = request.get_json() or {}
+    google_token = data.get("id_token") or data.get("credential")
+
+    if not google_token:
+        return jsonify({"error": "Google token is required"}), 400
+
+    try:
+        claims = verify_google_id_token(google_token)
+    except ValueError:
+        return jsonify({"error": "Invalid Google token"}), 401
+
+    email = (claims.get("email") or "").strip().lower()
+    google_sub = claims.get("sub")
+    full_name = sanitize_str(claims.get("name") or "Google User")
+
+    if not email or not google_sub:
+        return jsonify({"error": "Invalid Google payload"}), 400
+
+    if claims.get("email_verified") is False:
+        return jsonify({"error": "Google email is not verified"}), 400
+
+    try:
+        user = User.query.filter_by(google_id=google_sub).first()
+
+        if not user:
+            user = User.query.filter_by(email=email).first()
+            if user:
+                # Link existing account with Google
+                user.google_id = google_sub
+                if not user.full_name and full_name:
+                    user.full_name = full_name
+            else:
+                user = User(
+                    full_name=full_name,
+                    email=email,
+                    role="student",
+                    uuid=str(uuid_lib.uuid4()),
+                    google_id=google_sub,
+                )
+                user.set_password(generate_random_password())
+                db.session.add(user)
+
+        db.session.commit()
+
+        expires = timedelta(hours=4)
+        token = create_access_token(identity=user.uuid, expires_delta=expires)
+        resp = make_response(
+            jsonify({"message": "تم تسجيل الدخول بحساب Google", "user": user.to_dict()}),
+            200,
+        )
+        set_access_cookies(resp, token)
+        return resp
+    except Exception:
+        db.session.rollback()
+        logger.exception("Google login error")
+        return jsonify({"error": "حدث خطأ أثناء تسجيل الدخول بحساب Google"}), 500
 
 
 @auth_bp.route("/profile", methods=["GET"])

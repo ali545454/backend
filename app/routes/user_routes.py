@@ -17,10 +17,14 @@ def sanitize_str(s: str) -> str:
 @user_bp.route("/<int:user_id>", methods=["GET"])
 @jwt_required()
 def get_user(user_id):
-    current_user_id = get_jwt_identity()  # جلب ID من التوكن
+    current_user_uuid = get_jwt_identity()
+    current_user = User.query.filter_by(uuid=current_user_uuid).first()
+
+    if not current_user:
+        return jsonify({"error": "المستخدم الحالي غير موجود"}), 404
 
     # حماية البيانات
-    if current_user_id != user_id:
+    if current_user.id != user_id:
         return jsonify({"error": "غير مسموح بالوصول"}), 403
 
     user = User.query.get(user_id)
@@ -43,9 +47,13 @@ def get_user(user_id):
 @user_bp.route("/<int:user_id>", methods=["PUT"])
 @jwt_required()
 def update_user(user_id):
-    current_user_id = get_jwt_identity()
+    current_user_uuid = get_jwt_identity()
+    current_user = User.query.filter_by(uuid=current_user_uuid).first()
 
-    if current_user_id != user_id:
+    if not current_user:
+        return jsonify({"error": "المستخدم الحالي غير موجود"}), 404
+
+    if current_user.id != user_id:
         return jsonify({"error": "غير مسموح بالوصول"}), 403
 
     user = User.query.get(user_id)
