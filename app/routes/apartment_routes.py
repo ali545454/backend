@@ -1,37 +1,20 @@
-from flask import Blueprint, request, jsonify
-from app.models.apartment import Apartment
-from app.models.user import User
-from app import db
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from flask import g
-from flask import current_app
-from werkzeug.utils import secure_filename
-from flask import request, jsonify
-import uuid
 import os
-from PIL import Image
-from flask import Blueprint, request, jsonify, g, current_app
-from app.models.image import Image  # استورد الكلاس مباشرة
-from ..models.apartment_view import ApartmentView
-from flask import url_for
-from app.models.favorite import Favorite
-from app.models.apartment_view import ApartmentView
-from app.models.review import Review
 
-# ✅ الخطوة 1: قم باستيراد الـ Schema من ملف الـ Schemas
-# (تأكد من أن المسار صحيح حسب هيكل مشروعك)
-from app.schemas.apartment_schema import ApartmentSchema
-
-# مجلدين لفوق
 import cloudinary.uploader
+from flask import Blueprint, current_app, g, jsonify, request
+from flask_jwt_extended import get_jwt_identity, jwt_required
+
+from app import db
+from app.models.apartment import Apartment
+from app.models.apartment_view import ApartmentView
+from app.models.favorite import Favorite
+from app.models.image import Image
+from app.models.review import Review
+from app.models.user import User
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload, selectinload
 
 apartment_bp = Blueprint("apartment_bp", __name__)
-
-# ✅ الخطوة 2: قم بإنشاء نسخة من الـ Schema للتعامل مع القوائم
-# (ضع هذا السطر خارج الدوال، تحت الـ Blueprint مباشرة)
-# تعريف الـ Schema
-apartments_schema = ApartmentSchema(many=True)
-apartment_schema = ApartmentSchema()
 
 
 def str_to_bool(val):
@@ -40,6 +23,19 @@ def str_to_bool(val):
     if isinstance(val, bool):
         return val
     return str(val).lower() in ("true", "1", "yes", "on")
+
+
+def parse_pagination_args(default_per_page=20, max_per_page=100):
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", default_per_page, type=int)
+    page = 1 if not page or page < 1 else page
+    per_page = default_per_page if not per_page or per_page < 1 else per_page
+    per_page = min(per_page, max_per_page)
+    return page, per_page
+
+
+def wants_pagination() -> bool:
+    return request.args.get("paginate", "false").lower() in ("1", "true", "yes")
 
 
 @apartment_bp.route("/create", methods=["POST"])
@@ -140,6 +136,7 @@ def create_apartment():
 
 
 @apartment_bp.route("/all_apartments", methods=["GET"])
+@apartment_bp.route("/", methods=["GET"])
 def get_all_apartments():
     user_id = getattr(g, "user_id", None)
 
@@ -148,7 +145,38 @@ def get_all_apartments():
         user_favorites = Favorite.query.filter_by(user_id=user_id).all()
         favorite_apartment_ids = [fav.apartment_id for fav in user_favorites]
 
-    apartments = Apartment.query.all()
+    base_query = Apartment.query.options(
+        joinedload(Apartment.owner),
+        joinedload(Apartment.neighborhood),
+        selectinload(Apartment.images),
+        selectinload(Apartment.reviews),
+    ).order_by(Apartment.created_at.desc())
+
+    if wants_pagination():
+        page, per_page = parse_pagination_args(default_per_page=20, max_per_page=100)
+        pagination = base_query.paginate(page=page, per_page=per_page, error_out=False)
+        apartments_data = [
+            ap.to_dict(
+                user_favorite_apartment_ids=favorite_apartment_ids, include_all_images=True
+            )
+            for ap in pagination.items
+        ]
+        return (
+            jsonify(
+                {
+                    "items": apartments_data,
+                    "pagination": {
+                        "page": page,
+                        "per_page": per_page,
+                        "total": pagination.total,
+                        "pages": pagination.pages,
+                    },
+                }
+            ),
+            200,
+        )
+
+    apartments = base_query.all()
 
     apartments_data = [
         ap.to_dict(
@@ -162,21 +190,26 @@ def get_all_apartments():
 
 # ✅ Update apartment
 @apartment_bp.route("/apartments/<int:id>/update", methods=["PATCH"])
+@apartment_bp.route("/<int:id>/update", methods=["PATCH"])
 @jwt_required()
 def update_apartment(id):
-    user_id = get_jwt_identity()
+    user_uuid = get_jwt_identity()
+    user = User.query.filter_by(uuid=user_uuid).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
     apartment = Apartment.query.get(id)
 
     if not apartment:
         return jsonify({"error": "Apartment not found"}), 404
 
-    if apartment.owner_id != user_id:
+    if apartment.owner_id != user.id:
         return (
             jsonify({"error": "You are not authorized to update this apartment"}),
             403,
         )
 
-    data = request.get_json()
+    data = request.get_json() or {}
 
     apartment.title = data.get("title", apartment.title)
     apartment.description = data.get("description", apartment.description)
@@ -199,6 +232,7 @@ def update_apartment(id):
 
 
 @apartment_bp.route("/apartments/<string:uuid>/delete", methods=["DELETE"])
+@apartment_bp.route("/<string:uuid>/delete", methods=["DELETE"])
 @jwt_required()
 def delete_apartment(uuid):
     user_uuid = get_jwt_identity()
@@ -247,8 +281,8 @@ def delete_apartment(uuid):
 @apartment_bp.route("/admin/verify-apartment/<int:id>", methods=["PATCH"])
 @jwt_required()
 def verify_apartment(id):
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    user_uuid = get_jwt_identity()
+    user = User.query.filter_by(uuid=user_uuid).first()
 
     if not user or user.role != "admin":
         return jsonify({"error": "You are not authorized"}), 403
@@ -265,8 +299,18 @@ def verify_apartment(id):
 
 # ✅ Get all verified apartments
 @apartment_bp.route("/apartments/verified", methods=["GET"])
+@apartment_bp.route("/verified", methods=["GET"])
 def get_verified_apartments():
-    apartments = Apartment.query.filter_by(is_verified=True).all()
+    apartments = (
+        Apartment.query.options(
+            joinedload(Apartment.owner),
+            joinedload(Apartment.neighborhood),
+            selectinload(Apartment.images),
+            selectinload(Apartment.reviews),
+        )
+        .filter_by(is_verified=True)
+        .all()
+    )
     return jsonify([ap.to_dict() for ap in apartments]), 200
 
 
@@ -281,7 +325,14 @@ def get_my_apartments():
         return jsonify({"error": "User not found"}), 404
 
     # ✅ كل شقق المالك
-    apartments = Apartment.query.filter_by(owner_id=user.id).all()
+    apartments = (
+        Apartment.query.options(
+            joinedload(Apartment.neighborhood),
+            selectinload(Apartment.images),
+        )
+        .filter_by(owner_id=user.id)
+        .all()
+    )
 
     # ✅ لو مفيش شقق
     if not apartments:
@@ -301,17 +352,23 @@ def get_my_apartments():
 
     # ---------- 🏠 بيانات الشقق ----------
     result = []
-    total_views = 0
     apartments_per_month = {}
 
-    for apt in apartments:
-        main_image = (
-            apt.images.first()
-            if hasattr(apt.images, "first")
-            else (apt.images[0] if apt.images else None)
+    apartment_ids = [apt.id for apt in apartments]
+    views_rows = (
+        db.session.query(
+            ApartmentView.apartment_id,
+            func.count(ApartmentView.id).label("views_count"),
         )
-        views_count = ApartmentView.query.filter_by(apartment_id=apt.id).count()
-        total_views += views_count
+        .filter(ApartmentView.apartment_id.in_(apartment_ids))
+        .group_by(ApartmentView.apartment_id)
+        .all()
+    )
+    views_map = {row.apartment_id: row.views_count for row in views_rows}
+
+    for apt in apartments:
+        main_image = apt.images[0] if apt.images else None
+        views_count = views_map.get(apt.id, 0)
 
         # 📅 حساب عدد الشقق في كل شهر بناءً على created_at
         if hasattr(apt, "created_at") and apt.created_at:
@@ -336,7 +393,7 @@ def get_my_apartments():
     # ---------- 📊 الإحصائيات ----------
     stats = {
         "total_apartments": len(apartments),
-        "total_views": total_views,
+        "total_views": sum(views_map.values()),
         "apartments_per_month": apartments_per_month,
     }
 
@@ -345,6 +402,7 @@ def get_my_apartments():
 
 # ✅ Filter apartments
 @apartment_bp.route("/apartments/filter", methods=["GET"])
+@apartment_bp.route("/filter", methods=["GET"])
 def filter_apartments():
     neighborhood_id = request.args.get("neighborhood_id")
     min_price = request.args.get("min_price", type=float)
@@ -362,18 +420,33 @@ def filter_apartments():
     if rooms:
         query = query.filter_by(rooms=rooms)
 
-    apartments = query.all()
+    apartments = query.options(
+        joinedload(Apartment.owner),
+        joinedload(Apartment.neighborhood),
+        selectinload(Apartment.images),
+        selectinload(Apartment.reviews),
+    ).all()
     return jsonify([ap.to_dict() for ap in apartments]), 200
 
 
 # ✅ Search apartments by title
 @apartment_bp.route("/apartments/search", methods=["GET"])
+@apartment_bp.route("/search", methods=["GET"])
 def search_apartments():
     query = request.args.get("query", "").strip()
     if not query:
         return jsonify({"error": "Please enter a search term"}), 400
 
-    apartments = Apartment.query.filter(Apartment.title.ilike(f"%{query}%")).all()
+    apartments = (
+        Apartment.query.options(
+            joinedload(Apartment.owner),
+            joinedload(Apartment.neighborhood),
+            selectinload(Apartment.images),
+            selectinload(Apartment.reviews),
+        )
+        .filter(Apartment.title.ilike(f"%{query}%"))
+        .all()
+    )
     return jsonify([ap.to_dict() for ap in apartments]), 200
 
 
@@ -389,7 +462,11 @@ def get_owner_apartments():
         return jsonify({"error": "المستخدم غير موجود"}), 404
 
     # نستخدم user.id في البحث عن الشقق
-    apartments = Apartment.query.filter_by(owner_id=user.id).all()
+    apartments = (
+        Apartment.query.options(selectinload(Apartment.images))
+        .filter_by(owner_id=user.id)
+        .all()
+    )
 
     # نحول النتائج إلى JSON
     result = []
@@ -421,12 +498,23 @@ def get_owner_apartments():
 
 
 @apartment_bp.route("/apartments/<int:id>", methods=["GET"])
+@apartment_bp.route("/<int:id>", methods=["GET"])
 def get_apartment_by_id(id):
-    apartment = Apartment.query.get_or_404(id)
+    apartment = (
+        Apartment.query.options(
+            joinedload(Apartment.owner),
+            joinedload(Apartment.neighborhood),
+            selectinload(Apartment.images),
+            selectinload(Apartment.reviews),
+        )
+        .filter_by(id=id)
+        .first_or_404()
+    )
     return jsonify(apartment.to_dict()), 200
 
 
 @apartment_bp.route("/apartment/<string:uuid>/reviews", methods=["POST"])
+@apartment_bp.route("/<string:uuid>/reviews", methods=["POST"])
 @jwt_required()
 def add_review_to_apartment(uuid):
     # 1. الحصول على هوية المستخدم من التوكن
@@ -434,10 +522,19 @@ def add_review_to_apartment(uuid):
     user = User.query.filter_by(uuid=user_uuid).first_or_404()
 
     # 2. التأكد من وجود الشقة
-    apartment = Apartment.query.filter_by(uuid=uuid).first_or_404()
+    apartment = (
+        Apartment.query.options(
+            joinedload(Apartment.owner),
+            joinedload(Apartment.neighborhood),
+            selectinload(Apartment.images),
+            selectinload(Apartment.reviews),
+        )
+        .filter_by(uuid=uuid)
+        .first_or_404()
+    )
 
     # 3. قراءة البيانات من الطلب (request)
-    data = request.get_json()
+    data = request.get_json() or {}
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
@@ -491,9 +588,10 @@ def add_review_to_apartment(uuid):
 
 
 @apartment_bp.route("/apartment/<string:uuid>", methods=["GET"])
+@apartment_bp.route("/<string:uuid>", methods=["GET"])
 @jwt_required()
 def get_apartment_details(uuid):
-    current_user_id = get_jwt_identity()  # ده معرف الطالب/اللي عامل تسجيل الدخول
+    get_jwt_identity()  # تأكد أن المستخدم مصادق عليه
     apartment = Apartment.query.filter_by(uuid=uuid).first_or_404()
     data = apartment.to_dict(include_all_images=True)
 
@@ -518,7 +616,17 @@ def get_apartment_details(uuid):
 
 @apartment_bp.route("/featured", methods=["GET"])
 def get_featured_apartments():
-    apartments = Apartment.query.order_by(Apartment.id.desc()).limit(3).all()
+    apartments = (
+        Apartment.query.options(
+            joinedload(Apartment.neighborhood),
+            selectinload(Apartment.images),
+            selectinload(Apartment.reviews),
+            joinedload(Apartment.owner),
+        )
+        .order_by(Apartment.id.desc())
+        .limit(3)
+        .all()
+    )
 
     result = []
     for apt in apartments:

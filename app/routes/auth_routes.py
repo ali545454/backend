@@ -104,12 +104,12 @@ def register():
             # small delay could be added here (time.sleep) to reduce timing attacks
             return jsonify({"error": "البريد الإلكتروني مستخدم بالفعل"}), 400
 
+        # sanitize optional fields and parse date
+        phone = sanitize_str(data.get("phone") or "")
+
         # Check if phone is already used
         if phone and User.query.filter_by(phone=phone).first():
             return jsonify({"error": "رقم الهاتف مستخدم بالفعل"}), 400
-
-        # sanitize optional fields and parse date
-        phone = sanitize_str(data.get("phone") or "")
         birth_date = None
         if data.get("birthDate"):
             try:

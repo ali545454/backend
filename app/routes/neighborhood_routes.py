@@ -11,8 +11,8 @@ neighborhood_bp = Blueprint("neighborhood_bp", __name__)
 @neighborhood_bp.route("/neighborhoods/create", methods=["POST"])
 @jwt_required()
 def create_neighborhood():
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    user_uuid = get_jwt_identity()
+    user = User.query.filter_by(uuid=user_uuid).first()
 
     if not user or user.role != "مشرف":
         return jsonify({"error": "غير مصرح لك"}), 403
@@ -49,8 +49,8 @@ def get_all_neighborhoods():
 @neighborhood_bp.route("/neighborhoods/<int:id>/delete", methods=["DELETE"])
 @jwt_required()
 def delete_neighborhood(id):
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    user_uuid = get_jwt_identity()
+    user = User.query.filter_by(uuid=user_uuid).first()
 
     if not user or user.role != "مشرف":
         return jsonify({"error": "غير مصرح لك"}), 403

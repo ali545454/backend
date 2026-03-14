@@ -13,6 +13,19 @@ from functools import wraps
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
 
+def parse_pagination_args(default_per_page=20, max_per_page=100):
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", default_per_page, type=int)
+    page = 1 if not page or page < 1 else page
+    per_page = default_per_page if not per_page or per_page < 1 else per_page
+    per_page = min(per_page, max_per_page)
+    return page, per_page
+
+
+def wants_pagination() -> bool:
+    return request.args.get("paginate", "false").lower() in ("1", "true", "yes")
+
+
 # =========================
 # Helper: Require Admin JWT
 # =========================
@@ -114,7 +127,21 @@ def get_stats():
 @admin_bp.route("/users", methods=["GET"])
 @admin_required
 def get_users():
-    users = User.query.all()
+    query = User.query.order_by(User.created_at.desc())
+    if wants_pagination():
+        page, per_page = parse_pagination_args()
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        return jsonify({
+            "items": [u.to_dict() for u in pagination.items],
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": pagination.total,
+                "pages": pagination.pages,
+            },
+        })
+
+    users = query.all()
     return jsonify([u.to_dict() for u in users])
 
 
@@ -135,7 +162,21 @@ def delete_user(user_uuid):
 @admin_bp.route("/apartments", methods=["GET"])
 @admin_required
 def get_apartments():
-    apartments = Apartment.query.all()
+    query = Apartment.query.order_by(Apartment.created_at.desc())
+    if wants_pagination():
+        page, per_page = parse_pagination_args()
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        return jsonify({
+            "items": [a.to_dict(include_all_images=True) for a in pagination.items],
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": pagination.total,
+                "pages": pagination.pages,
+            },
+        })
+
+    apartments = query.all()
     return jsonify([a.to_dict(include_all_images=True) for a in apartments])
 
 
@@ -163,7 +204,21 @@ def delete_apartment(apartment_uuid):
 @admin_bp.route("/reviews", methods=["GET"])
 @admin_required
 def get_reviews():
-    reviews = Review.query.all()
+    query = Review.query.order_by(Review.created_at.desc())
+    if wants_pagination():
+        page, per_page = parse_pagination_args()
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        return jsonify({
+            "items": [r.to_dict() for r in pagination.items],
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": pagination.total,
+                "pages": pagination.pages,
+            },
+        })
+
+    reviews = query.all()
     return jsonify([r.to_dict() for r in reviews])
 
 
