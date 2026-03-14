@@ -15,15 +15,13 @@ class Config:
     if DATABASE_URL.startswith("mysql://"):
         DATABASE_URL = DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
 
-    # تعطيل SSL لو مش مستخدم
-    if "?" not in DATABASE_URL:
-        DATABASE_URL += "?ssl=false"
-    else:
-        DATABASE_URL += "&ssl=false"
-
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {"connect_args": {"ssl": None}}
+
+    # إعدادات SSL خاصة بـ MySQL فقط، ولا تُطبق على SQLite
+    SQLALCHEMY_ENGINE_OPTIONS = {}
+    if SQLALCHEMY_DATABASE_URI.startswith("mysql+pymysql://"):
+        SQLALCHEMY_ENGINE_OPTIONS = {"connect_args": {"ssl": None}}
 
     # JWT_SECRET_KEY مطلوب من متغيرات البيئة، افتراضي للتطوير
     SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-secret-key-change-in-production")
@@ -33,9 +31,6 @@ class Config:
         os.getenv("JWT_COOKIE_CSRF_PROTECT", "true").lower() == "true"
     )
     JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-
-    UPLOAD_FOLDER = os.path.join(basedir, "uploads")
-    ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
     UPLOAD_FOLDER = os.path.join(basedir, "uploads")
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}

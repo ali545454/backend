@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from app import db
 from ..models.apartment import Apartment
 from ..models.apartment_view import ApartmentView
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from datetime import datetime, timedelta
 
 views_bp = Blueprint("views", __name__, url_prefix="/api/views")
@@ -19,12 +19,16 @@ def track_view(uuid):
     spam_delay = now - timedelta(seconds=360)
 
     user_id = None
-    token = request.headers.get("Authorization")
-    if token:
-        try:
-            user_id = get_jwt_identity()
-        except:
-            user_id = None
+    try:
+        verify_jwt_in_request(optional=True)
+        user_uuid = get_jwt_identity()
+        if user_uuid:
+            from app.models.user import User
+
+            user = User.query.filter_by(uuid=user_uuid).first()
+            user_id = user.id if user else None
+    except Exception:
+        user_id = None
 
     # تحقق من وجود مشاهدة سابقة
     if user_id:
