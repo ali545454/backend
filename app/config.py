@@ -23,8 +23,14 @@ class Config:
     if SQLALCHEMY_DATABASE_URI.startswith("mysql+pymysql://"):
         SQLALCHEMY_ENGINE_OPTIONS = {"connect_args": {"ssl": None}}
 
-    # JWT_SECRET_KEY مطلوب من متغيرات البيئة، افتراضي للتطوير
-    SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-secret-key-change-in-production")
+    # JWT secret (used by flask-jwt-extended) and Flask SECRET_KEY.
+    # In production, set JWT_SECRET_KEY to a non-empty value.
+    _JWT_SECRET = os.getenv("JWT_SECRET_KEY", "dev-secret-key-change-in-production")
+    if not _JWT_SECRET:
+        raise ValueError("JWT_SECRET_KEY must not be empty")
+
+    SECRET_KEY = _JWT_SECRET
+    JWT_SECRET_KEY = _JWT_SECRET
 
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=30)
     JWT_COOKIE_CSRF_PROTECT = (
