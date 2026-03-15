@@ -10,6 +10,7 @@ from .image_routes import image_bp
 from .neighborhood_routes import neighborhood_bp
 from .admin_routes import admin_bp
 from .views_routes import views_bp
+from .messenger_routes import messenger_bp
 
 
 def register_static_routes(app):
@@ -38,6 +39,9 @@ def register_routes(app):
 
     # Admin
     app.register_blueprint(admin_bp, url_prefix="/api/v1/admin")
+
+    # Messenger / Chat (supports frontend endpoints like /api/v1/chat/conversations)
+    app.register_blueprint(messenger_bp)
 
     # Views
     app.register_blueprint(views_bp)

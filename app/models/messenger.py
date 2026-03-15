@@ -1,33 +1,25 @@
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from app import db
 
 
 class Conversation(db.Model):
-    __tablename__ = "conversations"
+    __tablename__ = "chat_conversations"
+
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(255))
-    is_group = db.Column(db.Boolean, default=False)
+    student_id = db.Column(db.Integer, nullable=False)
+    owner_id = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
-    members = db.relationship("ConversationMember", back_populates="conversation")
+
     messages = db.relationship("Message", back_populates="conversation")
 
 
-class ConversationMember(db.Model):
-    __tablename__ = "conversation_members"
-    id = db.Column(db.Integer, primary_key=True)
-    conversation_id = db.Column(db.Integer, db.ForeignKey("conversations.id"))
-    user_id = db.Column(db.Integer)  # ممكن تربطه بجدول users لو موجود
-    joined_at = db.Column(db.DateTime, server_default=db.func.now())
-    conversation = db.relationship("Conversation", back_populates="members")
-
-
 class Message(db.Model):
-    __tablename__ = "messages"
+    __tablename__ = "chat_messages"
+
     id = db.Column(db.Integer, primary_key=True)
-    conversation_id = db.Column(db.Integer, db.ForeignKey("conversations.id"))
-    sender_id = db.Column(db.Integer)  # user_id المرسل
-    text = db.Column(db.Text)
-    read_status = db.Column(db.Boolean, default=False)
+    conversation_id = db.Column(db.Integer, db.ForeignKey("chat_conversations.id"))
+    sender_id = db.Column(db.Integer, nullable=False)
+    text = db.Column(db.String(1000), nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+
     conversation = db.relationship("Conversation", back_populates="messages")
