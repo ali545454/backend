@@ -23,12 +23,19 @@ def conversations():
         convs = Conversation.query.all()
         return jsonify([_serialize_conversation(c) for c in convs]), 200
 
-    # POST: create a new conversation.
+    # POST: find or create a new conversation.
     data = request.json or {}
     student_id = data.get("student_id")
     owner_id = data.get("owner_id")
     if not student_id or not owner_id:
         return jsonify({"error": "student_id and owner_id are required"}), 400
+    
+    # Check if conversation already exists
+    conv = Conversation.query.filter_by(student_id=student_id, owner_id=owner_id).first()
+    if conv:
+        return jsonify(_serialize_conversation(conv)), 200
+    
+    # Create new conversation
     conv = Conversation(
         student_id=student_id,
         owner_id=owner_id,
@@ -36,7 +43,45 @@ def conversations():
     db.session.add(conv)
     db.session.commit()
 
-    return jsonify({"id": conv.id, "student_id": conv.student_id, "owner_id": conv.owner_id}), 201
+    return jsonify(_serialize_conversation(conv)), 201
+
+
+@messenger_bp.route("/messages/start", methods=["POST"])
+def start_conversation():
+    data = request.json or {}
+    student_id = data.get("student_id")
+    owner_id = data.get("owner_id")
+    text = data.get("text")
+    if not student_id or not owner_id or not text:
+        return jsonify({"error": "student_id, owner_id, and text are required"}), 400
+    
+    # Find or create conversation
+    conv = Conversation.query.filter_by(student_id=student_id, owner_id=owner_id).first()
+    if not conv:
+        conv = Conversation(student_id=student_id, owner_id=owner_id)
+        db.session.add(conv)
+        db.session.commit()
+    
+    # Send the first message
+    msg = Message(
+        conversation_id=conv.id,
+        sender_id=student_id,  # Assuming student starts the conversation
+        text=text,
+    )
+    db.session.add(msg)
+    db.session.commit()
+    
+    return jsonify({
+        "conversation": _serialize_conversation(conv),
+        "message": {
+            "id": msg.id,
+            "conversation_id": msg.conversation_id,
+            "sender_id": msg.sender_id,
+            "text": msg.text,
+            "is_read": msg.is_read,
+            "created_at": msg.created_at.isoformat() if msg.created_at else None,
+        }
+    }), 201
 
 
 @messenger_bp.route("/messages", methods=["POST"])
@@ -58,44 +103,26 @@ def send_message():
     return jsonify({"id": msg.id, "text": msg.text}), 201
 
 
-@messenger_bp.route("/messages/start", methods=["POST"])
-def start_message_thread():
-    # Creates a new conversation (if needed) then sends the first message.
-    data = request.json or {}
-
-    student_id = data.get("student_id")
-    owner_id = data.get("owner_id")
-    sender_id = data.get("sender_id")
-    text = data.get("text")
-    conversation_id = data.get("conversation_id")
-
-    if conversation_id:
-        conv = Conversation.query.get(conversation_id)
-        if not conv:
-            return jsonify({"error": "Conversation not found"}), 404
-    else:
-        if not student_id or not owner_id:
-            return jsonify({"error": "student_id and owner_id are required if no conversation_id"}), 400
-        conv = Conversation(
-            student_id=student_id,
-            owner_id=owner_id,
-        )
-        db.session.add(conv)
-        db.session.commit()
-
-    if not sender_id or not text:
-        return jsonify({"error": "sender_id and text are required"}), 400
-
-    msg = Message(
-        conversation_id=conv.id,
-        sender_id=sender_id,
-        text=text,
-    )
-    db.session.add(msg)
-    db.session.commit()
-
-    return jsonify({
-        "conversation_id": conv.id,
-        "message_id": msg.id,
+@messenger_bp.route("/messages/<int:conversation_id>", methods=["GET"])
+def get_messages(conversation_id):
+    # Get all messages for a specific conversation
+    messages = Message.query.filter_by(conversation_id=conversation_id).order_by(Message.created_at).all()
+    return jsonify([{
+        "id": msg.id,
+        "conversation_id": msg.conversation_id,
+        "sender_id": msg.sender_id,
         "text": msg.text,
-    }), 201
+        "is_read": msg.is_read,
+        "created_at": msg.created_at.isoformat() if msg.created_at else None,
+    } for msg in messages]), 200
+
+
+@messenger_bp.route("/messages/<int:message_id>/read", methods=["PUT"])
+def mark_message_read(message_id):
+    # Mark a message as read
+    msg = Message.query.get(message_id)
+    if not msg:
+        return jsonify({"error": "Message not found"}), 404
+    msg.is_read = True
+    db.session.commit()
+    return jsonify({"id": msg.id, "is_read": msg.is_read}), 200
