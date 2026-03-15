@@ -25,9 +25,13 @@ def conversations():
 
     # POST: create a new conversation.
     data = request.json or {}
+    student_id = data.get("student_id")
+    owner_id = data.get("owner_id")
+    if not student_id or not owner_id:
+        return jsonify({"error": "student_id and owner_id are required"}), 400
     conv = Conversation(
-        student_id=data.get("student_id"),
-        owner_id=data.get("owner_id"),
+        student_id=student_id,
+        owner_id=owner_id,
     )
     db.session.add(conv)
     db.session.commit()
@@ -39,10 +43,15 @@ def conversations():
 @messenger_bp.route("/chat/messages", methods=["POST"])
 def send_message():
     data = request.json or {}
+    conversation_id = data.get("conversation_id")
+    sender_id = data.get("sender_id")
+    text = data.get("text")
+    if not conversation_id or not sender_id or not text:
+        return jsonify({"error": "conversation_id, sender_id, and text are required"}), 400
     msg = Message(
-        conversation_id=data["conversation_id"],
-        sender_id=data["sender_id"],
-        text=data["text"],
+        conversation_id=conversation_id,
+        sender_id=sender_id,
+        text=text,
     )
     db.session.add(msg)
     db.session.commit()
@@ -54,23 +63,33 @@ def start_message_thread():
     # Creates a new conversation (if needed) then sends the first message.
     data = request.json or {}
 
+    student_id = data.get("student_id")
+    owner_id = data.get("owner_id")
+    sender_id = data.get("sender_id")
+    text = data.get("text")
     conversation_id = data.get("conversation_id")
+
     if conversation_id:
         conv = Conversation.query.get(conversation_id)
         if not conv:
             return jsonify({"error": "Conversation not found"}), 404
     else:
+        if not student_id or not owner_id:
+            return jsonify({"error": "student_id and owner_id are required if no conversation_id"}), 400
         conv = Conversation(
-            student_id=data.get("student_id"),
-            owner_id=data.get("owner_id"),
+            student_id=student_id,
+            owner_id=owner_id,
         )
         db.session.add(conv)
         db.session.commit()
 
+    if not sender_id or not text:
+        return jsonify({"error": "sender_id and text are required"}), 400
+
     msg = Message(
         conversation_id=conv.id,
-        sender_id=data.get("sender_id"),
-        text=data.get("text"),
+        sender_id=sender_id,
+        text=text,
     )
     db.session.add(msg)
     db.session.commit()
