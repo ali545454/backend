@@ -1,0 +1,127 @@
+# ملخص الباك اند - مسارات ومتطلبات
+
+## متطلبات المشروع (Requirements)
+
+### Flask Core
+- Flask==3.0.3
+- Werkzeug==3.0.3
+- gunicorn==23.0.0
+
+### قاعدة البيانات والـ ORM
+- Flask-SQLAlchemy==3.1.1
+- SQLAlchemy==2.0.21
+- Flask-Migrate==4.0.5
+- PyMySQL==1.1.1
+
+### التحقق والتسلسل
+- marshmallow==3.21.3
+- email-validator==2.2.0
+
+### المصادقة والأمان
+- Flask-JWT-Extended==4.6.0
+- PyJWT==2.9.0
+- bcrypt==4.1.2
+- bleach==6.1.0
+- Flask-Limiter==3.5.0
+- Flask-Talisman==1.1.0
+
+### CORS
+- Flask-Cors==5.0.0
+
+### رفع الملفات والصور
+- Pillow==10.4.0
+- cloudinary==1.41.0
+
+### متغيرات البيئة
+- python-dotenv==1.0.1
+
+### أدوات إضافية
+- itsdangerous==2.2.0
+- requests==2.32.3
+- cryptography>=41.0
+
+## مسارات API (Routes)
+
+### مصادقة المستخدمين (Authentication Routes)
+- POST /auth/register - تسجيل مستخدم جديد
+- POST /auth/login - تسجيل الدخول
+- GET /auth/profile - عرض ملف المستخدم الشخصي
+- POST /auth/update-password - تحديث كلمة المرور
+- POST /auth/logout - تسجيل الخروج
+- PATCH /auth/profile/update - تحديث ملف المستخدم
+- GET /auth/check - التحقق من المصادقة
+
+### إدارة الشقق (Apartment Routes)
+- POST /apartments/create - إنشاء شقة جديدة
+- GET /apartments/all_apartments - عرض جميع الشقق
+- PATCH /apartments/<id>/update - تحديث شقة
+- DELETE /apartments/<uuid>/delete - حذف شقة
+- PATCH /admin/verify-apartment/<id> - التحقق من الشقة (للإدارة)
+- GET /apartments/verified - عرض الشقق المعتمدة
+- GET /apartments/my-apartments - شقق المالك الحالي مع الإحصائيات
+- GET /apartments/filter - تصفية الشقق
+- GET /apartments/search - البحث عن الشقق
+- GET /apartments/owner-apartments - شقق المالك
+- GET /apartments/<id> - عرض شقة بالمعرف
+- POST /apartment/<uuid>/reviews - إضافة تقييم للشقة
+- GET /apartment/<uuid> - تفاصيل الشقة
+- GET /apartments/featured - الشقق المميزة
+
+### المفضلة (Favorites Routes)
+- POST /favorites/add - إضافة شقة للمفضلة
+- DELETE /favorites/remove/<apartment_uuid> - إزالة شقة من المفضلة
+- GET /favorites - عرض المفضلة
+
+### الصور (Image Routes)
+- POST /images/upload-image/<apartment_id> - رفع صورة للشقة
+- GET /images/apartment/<apartment_id>/images - عرض صور الشقة
+
+### الرسائل (Messenger Routes)
+- POST /messenger/conversations - إنشاء محادثة
+- POST /messenger/messages - إرسال رسالة
+
+### التقييمات (Reviews Routes)
+- POST /reviews/create - إنشاء تقييم
+- GET /reviews/apartment/<apartment_id> - تقييمات الشقة
+- DELETE /reviews/<review_id>/delete - حذف تقييم
+
+### المستخدمون (User Routes)
+- GET /users/<user_id> - عرض مستخدم
+- PUT /users/<user_id> - تحديث مستخدم
+
+### الأحياء (Neighborhood Routes)
+- POST /neighborhoods/create - إنشاء حي جديد
+- GET /neighborhoods - عرض الأحياء
+- DELETE /neighborhoods/<id>/delete - حذف حي
+
+### الإدارة (Admin Routes)
+- POST /admin/register - تسجيل إداري
+- POST /admin/login - دخول إداري
+- GET /admin/stats - إحصائيات
+- GET /admin/users - عرض المستخدمين
+- DELETE /admin/users/<user_uuid> - حذف مستخدم
+- GET /admin/apartments - عرض الشقق
+- DELETE /admin/apartments/<apartment_uuid> - حذف شقة
+- GET /admin/reviews - عرض التقييمات
+- DELETE /admin/reviews/<review_id> - حذف تقييم
+- GET /admin/neighborhoods - عرض الأحياء
+- POST /admin/neighborhoods - إنشاء حي
+- DELETE /admin/neighborhoods/<neighborhood_id> - حذف حي
+
+### المشاهدات (Views Routes)
+- POST /api/views/track/<uuid> - تتبع مشاهدة الشقة
+- GET /api/views/owner/details - تفاصيل مشاهدات المالك
+
+## إعداد المشروع
+
+1. استنساخ المستودع
+2. إنشاء بيئة افتراضية: `python -m venv venv`
+3. تفعيل البيئة: `source venv/bin/activate`
+4. تثبيت المتطلبات: `pip install -r requirements.txt`
+5. إعداد ملف .env من .env.example
+6. تشغيل الهجرات: `flask db upgrade`
+7. تشغيل التطبيق: `python run.py`
+
+## اختبار المشروع
+
+- تشغيل `pytest` لتنفيذ الاختبارات
