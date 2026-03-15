@@ -138,54 +138,63 @@ def create_apartment():
 @apartment_bp.route("/all_apartments", methods=["GET"])
 @apartment_bp.route("/", methods=["GET"])
 def get_all_apartments():
-    user_id = getattr(g, "user_id", None)
+    try:
+        user_id = getattr(g, "user_id", None)
 
-    favorite_apartment_ids = []
-    if user_id:
-        user_favorites = Favorite.query.filter_by(user_id=user_id).all()
-        favorite_apartment_ids = [fav.apartment_id for fav in user_favorites]
+        favorite_apartment_ids = []
+        if user_id:
+            user_favorites = Favorite.query.filter_by(user_id=user_id).all()
+            favorite_apartment_ids = [fav.apartment_id for fav in user_favorites]
 
-    base_query = Apartment.query.options(
-        joinedload(Apartment.owner),
-        joinedload(Apartment.neighborhood),
-        selectinload(Apartment.images),
-        selectinload(Apartment.reviews),
-    ).order_by(Apartment.created_at.desc())
+        base_query = Apartment.query.options(
+            joinedload(Apartment.owner),
+            joinedload(Apartment.neighborhood),
+            selectinload(Apartment.images),
+            selectinload(Apartment.reviews),
+        ).order_by(Apartment.created_at.desc())
 
-    if wants_pagination():
-        page, per_page = parse_pagination_args(default_per_page=20, max_per_page=100)
-        pagination = base_query.paginate(page=page, per_page=per_page, error_out=False)
+        if wants_pagination():
+            page, per_page = parse_pagination_args(default_per_page=20, max_per_page=100)
+            pagination = base_query.paginate(page=page, per_page=per_page, error_out=False)
+            apartments_data = [
+                ap.to_dict(
+                    user_favorite_apartment_ids=favorite_apartment_ids, include_all_images=True
+                )
+                for ap in pagination.items
+            ]
+            return (
+                jsonify(
+                    {
+                        "items": apartments_data,
+                        "pagination": {
+                            "page": page,
+                            "per_page": per_page,
+                            "total": pagination.total,
+                            "pages": pagination.pages,
+                        },
+                    }
+                ),
+                200,
+            )
+
+        apartments = base_query.all()
+
         apartments_data = [
             ap.to_dict(
                 user_favorite_apartment_ids=favorite_apartment_ids, include_all_images=True
             )
-            for ap in pagination.items
+            for ap in apartments
         ]
+
+        return jsonify(apartments_data), 200
+
+    except Exception as e:
+        # Log the error to make it visible in production logs
+        current_app.logger.exception("Error fetching apartments")
         return (
-            jsonify(
-                {
-                    "items": apartments_data,
-                    "pagination": {
-                        "page": page,
-                        "per_page": per_page,
-                        "total": pagination.total,
-                        "pages": pagination.pages,
-                    },
-                }
-            ),
-            200,
+            jsonify({"error": "فشل جلب البيانات من الخادم", "details": str(e)}),
+            500,
         )
-
-    apartments = base_query.all()
-
-    apartments_data = [
-        ap.to_dict(
-            user_favorite_apartment_ids=favorite_apartment_ids, include_all_images=True
-        )
-        for ap in apartments
-    ]
-
-    return jsonify(apartments_data), 200
 
 
 # ✅ Update apartment

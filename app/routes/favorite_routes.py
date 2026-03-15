@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 favorites_bp = Blueprint("favorites", __name__)
 
 
-@favorites_bp.route("/favorites/add", methods=["POST"])
+@favorites_bp.route("/add", methods=["POST"])
 @jwt_required(locations=["cookies"])
 def add_to_favorites():
     data = request.get_json()
@@ -41,7 +41,7 @@ def add_to_favorites():
         return jsonify({"message": "An error occurred", "error": str(e)}), 500
 
 
-@favorites_bp.route("/favorites/remove/<string:apartment_uuid>", methods=["DELETE"])
+@favorites_bp.route("/remove/<string:apartment_uuid>", methods=["DELETE"])
 @jwt_required(locations=["cookies"])
 def remove_from_favorites(apartment_uuid):
     user_uuid = get_jwt_identity()
@@ -73,7 +73,9 @@ def remove_from_favorites(apartment_uuid):
         return jsonify({"message": "An error occurred", "error": str(e)}), 500
 
 
-@favorites_bp.route("/favorites", methods=["GET"])
+@favorites_bp.route("/", methods=["GET"])
+@favorites_bp.route("/list", methods=["GET"])
+@favorites_bp.route("/my", methods=["GET"])
 @jwt_required(locations=["cookies"])
 def get_favorites():
     user_uuid = get_jwt_identity()

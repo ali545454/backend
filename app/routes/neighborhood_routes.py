@@ -39,7 +39,7 @@ def create_neighborhood():
 
 
 # ✅ جلب كل الأحياء
-@neighborhood_bp.route("/neighborhoods", methods=["GET"])
+@neighborhood_bp.route("/", methods=["GET"])
 def get_all_neighborhoods():
     neighborhoods = Neighborhood.query.all()
     return jsonify([n.to_dict() for n in neighborhoods]), 200
