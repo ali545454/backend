@@ -233,7 +233,7 @@ def update_apartment(id):
 
 @apartment_bp.route("/apartments/<string:uuid>/delete", methods=["DELETE"])
 @apartment_bp.route("/<string:uuid>/delete", methods=["DELETE"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def delete_apartment(uuid):
     user_uuid = get_jwt_identity()
     user = User.query.filter_by(uuid=user_uuid).first()
@@ -316,7 +316,7 @@ def get_verified_apartments():
 
 # ✅ Get apartments of current owner + stats
 @apartment_bp.route("/my-apartments", methods=["GET"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def get_my_apartments():
     user_uuid = get_jwt_identity()
     user = User.query.filter_by(uuid=user_uuid).first()
@@ -452,7 +452,7 @@ def search_apartments():
 
 # ✅ Get apartments of current owner
 @apartment_bp.route("/owner-apartments", methods=["GET"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def get_owner_apartments():
     user_uuid = get_jwt_identity()  # هيرجع uuid
 
@@ -515,7 +515,7 @@ def get_apartment_by_id(id):
 
 @apartment_bp.route("/apartment/<string:uuid>/reviews", methods=["POST"])
 @apartment_bp.route("/<string:uuid>/reviews", methods=["POST"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def add_review_to_apartment(uuid):
     # 1. الحصول على هوية المستخدم من التوكن
     user_uuid = get_jwt_identity()
@@ -589,7 +589,7 @@ def add_review_to_apartment(uuid):
 
 @apartment_bp.route("/apartment/<string:uuid>", methods=["GET"])
 @apartment_bp.route("/<string:uuid>", methods=["GET"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def get_apartment_details(uuid):
     get_jwt_identity()  # تأكد أن المستخدم مصادق عليه
     apartment = Apartment.query.filter_by(uuid=uuid).first_or_404()

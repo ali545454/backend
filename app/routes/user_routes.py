@@ -15,7 +15,7 @@ def sanitize_str(s: str) -> str:
 
 
 @user_bp.route("/<int:user_id>", methods=["GET"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def get_user(user_id):
     current_user_uuid = get_jwt_identity()
     current_user = User.query.filter_by(uuid=current_user_uuid).first()
@@ -45,7 +45,7 @@ def get_user(user_id):
 
 
 @user_bp.route("/<int:user_id>", methods=["PUT"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def update_user(user_id):
     current_user_uuid = get_jwt_identity()
     current_user = User.query.filter_by(uuid=current_user_uuid).first()

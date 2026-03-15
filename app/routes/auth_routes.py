@@ -201,7 +201,7 @@ def login():
 
 
 @auth_bp.route("/profile", methods=["GET"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def profile():
     # هذا الكود الآن سيعمل بشكل صحيح لأن الهوية هي uuid
     user_uuid = get_jwt_identity()
@@ -214,7 +214,7 @@ def profile():
 
 
 @auth_bp.route("/update-password", methods=["POST"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def update_password():
     # ✅ *** التعديل الثالث: البحث عن المستخدم باستخدام UUID ***
     user_uuid = get_jwt_identity()
@@ -253,7 +253,7 @@ def logout():
 
 
 @auth_bp.route("/profile/update", methods=["PATCH"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def update_profile():
     user_uuid = get_jwt_identity()
     user = User.query.filter_by(uuid=user_uuid).first()

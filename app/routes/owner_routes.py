@@ -8,7 +8,7 @@ views_bp = Blueprint("views", __name__, url_prefix="/api/views")
 
 
 @views_bp.route("/owner/details", methods=["GET"])
-@jwt_required()  # تأكد أن المالك مسجل دخول
+@jwt_required(locations=["cookies"])  # تأكد أن المالك مسجل دخول
 def owner_apartment_views():
     current_user_id = get_jwt_identity()  # ID المالك من التوكن
 

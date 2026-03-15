@@ -11,7 +11,7 @@ review_bp = Blueprint("review_bp", __name__)
 # ✅ إنشاء تقييم لشقة
 @review_bp.route("/reviews/create", methods=["POST"])
 @review_bp.route("/create", methods=["POST"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def create_review():
     user_uuid = get_jwt_identity()
     user = User.query.filter_by(uuid=user_uuid).first()
@@ -70,7 +70,7 @@ def get_reviews_for_apartment(apartment_id):
 # ✅ حذف تقييم
 @review_bp.route("/reviews/<int:review_id>/delete", methods=["DELETE"])
 @review_bp.route("/<int:review_id>/delete", methods=["DELETE"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def delete_review(review_id):
     user_uuid = get_jwt_identity()
     user = User.query.filter_by(uuid=user_uuid).first()
@@ -94,7 +94,7 @@ def delete_review(review_id):
 # ✅ تعديل تقييم
 @review_bp.route("/reviews/<int:review_id>/update", methods=["PATCH"])
 @review_bp.route("/<int:review_id>/update", methods=["PATCH"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def update_review(review_id):
     user_uuid = get_jwt_identity()
     user = User.query.filter_by(uuid=user_uuid).first()
@@ -129,7 +129,7 @@ def update_review(review_id):
 # ✅ جلب كل التقييمات للمستخدم
 @review_bp.route("/reviews/user", methods=["GET"])
 @review_bp.route("/user", methods=["GET"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def get_user_reviews():
     user_uuid = get_jwt_identity()
     user = User.query.filter_by(uuid=user_uuid).first()

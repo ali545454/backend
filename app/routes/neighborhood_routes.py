@@ -9,7 +9,7 @@ neighborhood_bp = Blueprint("neighborhood_bp", __name__)
 
 # ✅ إنشاء حي جديد (للمشرف فقط)
 @neighborhood_bp.route("/neighborhoods/create", methods=["POST"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def create_neighborhood():
     user_uuid = get_jwt_identity()
     user = User.query.filter_by(uuid=user_uuid).first()
@@ -47,7 +47,7 @@ def get_all_neighborhoods():
 
 # ✅ حذف حي (للمشرف فقط)
 @neighborhood_bp.route("/neighborhoods/<int:id>/delete", methods=["DELETE"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def delete_neighborhood(id):
     user_uuid = get_jwt_identity()
     user = User.query.filter_by(uuid=user_uuid).first()
