@@ -40,77 +40,75 @@
 - requests==2.32.3
 - cryptography>=41.0
 
-## مسارات API (Routes)
+---
 
-### مصادقة المستخدمين (Authentication Routes)
-- POST /auth/register - تسجيل مستخدم جديد
-- POST /auth/login - تسجيل الدخول
-- GET /auth/profile - عرض ملف المستخدم الشخصي
-- POST /auth/update-password - تحديث كلمة المرور
-- POST /auth/logout - تسجيل الخروج
-- PATCH /auth/profile/update - تحديث ملف المستخدم
-- GET /auth/check - التحقق من المصادقة
+## 🚀 مسارات API (Routes)
 
-### إدارة الشقق (Apartment Routes)
-- POST /apartments/create - إنشاء شقة جديدة
-- GET /apartments/all_apartments - عرض جميع الشقق
-- PATCH /apartments/<id>/update - تحديث شقة
-- DELETE /apartments/<uuid>/delete - حذف شقة
-- PATCH /admin/verify-apartment/<id> - التحقق من الشقة (للإدارة)
-- GET /apartments/verified - عرض الشقق المعتمدة
-- GET /apartments/my-apartments - شقق المالك الحالي مع الإحصائيات
-- GET /apartments/filter - تصفية الشقق
-- GET /apartments/search - البحث عن الشقق
-- GET /apartments/owner-apartments - شقق المالك
-- GET /apartments/<id> - عرض شقة بالمعرف
-- POST /apartment/<uuid>/reviews - إضافة تقييم للشقة
-- GET /apartment/<uuid> - تفاصيل الشقة
-- GET /apartments/featured - الشقق المميزة
+### 🔐 مصادقة المستخدمين (Authentication)
+- POST `/api/v1/auth/register` – تسجيل مستخدم جديد
+- POST `/api/v1/auth/login` – تسجيل الدخول
+- GET `/api/v1/auth/profile` – عرض ملف المستخدم الشخصي
+- POST `/api/v1/auth/update-password` – تحديث كلمة المرور
+- POST `/api/v1/auth/logout` – تسجيل الخروج
+- PATCH `/api/v1/auth/profile/update` – تحديث ملف المستخدم
+- GET `/api/v1/auth/check` – تحقق من المصادقة
 
-### المفضلة (Favorites Routes)
-- POST /favorites/add - إضافة شقة للمفضلة
-- DELETE /favorites/remove/<apartment_uuid> - إزالة شقة من المفضلة
-- GET /favorites - عرض المفضلة
+### 🏠 إدارة الشقق (Apartments)
+- POST `/api/v1/apartments/create` – إنشاء شقة جديدة (multipart/form-data + صور)
+- GET `/api/v1/apartments` أو `/api/v1/apartments/all_apartments` – جلب جميع الشقق (يدعم pagination)
+- GET `/api/v1/apartments/verified` – الشقق المعتمدة فقط
+- GET `/api/v1/apartments/featured` – أحدث 3 شقق مميزة
+- GET `/api/v1/apartments/filter` – تصفية (neighborhood_id, min_price, max_price, rooms)
+- GET `/api/v1/apartments/search` – البحث بـ `?query=` على العنوان
+- GET `/api/v1/apartments/my-apartments` – شقق المالك الحالي + إحصائيات
+- GET `/api/v1/apartments/owner-apartments` – شقق المالك (نسخة بديلة)
+- GET `/api/v1/apartments/<id>` – جلب شقة برقمها
+- PATCH `/api/v1/apartments/<id>/update` – تحديث شقة (المالك فقط)
+- DELETE `/api/v1/apartments/<uuid>/delete` – حذف شقة (المالك فقط)
+- PATCH `/api/v1/admin/verify-apartment/<id>` – اعتماد شقة (إدارة فقط)
+- POST `/api/v1/apartment/<uuid>/reviews` – إضافة تقييم لشقة
+- GET `/api/v1/apartment/<uuid>` – تفاصيل الشقة (يتطلب مصادقة)
 
-### الصور (Image Routes)
-- POST /images/upload-image/<apartment_id> - رفع صورة للشقة
-- GET /images/apartment/<apartment_id>/images - عرض صور الشقة
+### ⭐ المفضلة (Favorites)
+- POST `/api/v1/favorites/add` – إضافة شقة للمفضلة
+- DELETE `/api/v1/favorites/remove/<apartment_uuid>` – إزالة من المفضلة
+- GET `/api/v1/favorites` (أو `/list`, `/my`) – عرض المفضلة
 
-### الرسائل (Messenger Routes)
-- POST /messenger/conversations - إنشاء محادثة
-- POST /messenger/messages - إرسال رسالة
+### 🖼️ الصور (Images)
+- POST `/api/v1/images/upload-image/<apartment_id>` – رفع صورة لشقة (Cloudinary)
+- GET `/api/v1/images/apartment/<apartment_id>/images` – جلب صور شقة
 
-### التقييمات (Reviews Routes)
-- POST /reviews/create - إنشاء تقييم
-- GET /reviews/apartment/<apartment_id> - تقييمات الشقة
-- DELETE /reviews/<review_id>/delete - حذف تقييم
+### ⭐ التقييمات (Reviews)
+- POST `/api/v1/reviews/create` (أو `/create`) – إنشاء تقييم
+- GET `/api/v1/reviews/apartment/<apartment_id>` – جلب تقييمات الشقة
+- DELETE `/api/v1/reviews/<review_id>/delete` – حذف تقييم
+- PATCH `/api/v1/reviews/<review_id>/update` – تعديل تقييم
+- GET `/api/v1/reviews/user` – تقييمات المستخدم الحالي
 
-### المستخدمون (User Routes)
-- GET /users/<user_id> - عرض مستخدم
-- PUT /users/<user_id> - تحديث مستخدم
+### 🏘️ الأحياء (Neighborhoods)
+- GET `/api/v1/neighborhoods` – جلب الأحياء
+- POST `/api/v1/neighborhoods/create` – إنشاء حي جديد (إدارة فقط)
+- DELETE `/api/v1/neighborhoods/<id>/delete` – حذف حي (إدارة فقط)
 
-### الأحياء (Neighborhood Routes)
-- POST /neighborhoods/create - إنشاء حي جديد
-- GET /neighborhoods - عرض الأحياء
-- DELETE /neighborhoods/<id>/delete - حذف حي
+### 🛡️ الإدارة (Admin)
+- POST `/api/v1/admin/register` – تسجيل إداري
+- POST `/api/v1/admin/login` – تسجيل دخول إداري
+- GET `/api/v1/admin/stats` – إحصائيات (إدارة)
+- GET `/api/v1/admin/users` – جلب المستخدمين (إدارة)
+- DELETE `/api/v1/admin/users/<user_uuid>` – حذف مستخدم (إدارة)
+- GET `/api/v1/admin/apartments` – جلب الشقق (إدارة)
+- DELETE `/api/v1/admin/apartments/<apartment_uuid>` – حذف شقة (إدارة)
+- GET `/api/v1/admin/reviews` – جلب التقييمات (إدارة)
+- DELETE `/api/v1/admin/reviews/<review_id>` – حذف تقييم (إدارة)
+- GET `/api/v1/admin/neighborhoods` – جلب الأحياء (إدارة)
+- POST `/api/v1/admin/neighborhoods` – إنشاء حي (إدارة)
+- DELETE `/api/v1/admin/neighborhoods/<neighborhood_id>` – حذف حي (إدارة)
 
-### الإدارة (Admin Routes)
-- POST /admin/register - تسجيل إداري
-- POST /admin/login - دخول إداري
-- GET /admin/stats - إحصائيات
-- GET /admin/users - عرض المستخدمين
-- DELETE /admin/users/<user_uuid> - حذف مستخدم
-- GET /admin/apartments - عرض الشقق
-- DELETE /admin/apartments/<apartment_uuid> - حذف شقة
-- GET /admin/reviews - عرض التقييمات
-- DELETE /admin/reviews/<review_id> - حذف تقييم
-- GET /admin/neighborhoods - عرض الأحياء
-- POST /admin/neighborhoods - إنشاء حي
-- DELETE /admin/neighborhoods/<neighborhood_id> - حذف حي
+### 👀 المشاهدات (Views)
+- POST `/api/views/track/<uuid>` – تتبع مشاهدة شقة
+- GET `/api/views/owner/details` – تفاصيل مشاهدات المالك
 
-### المشاهدات (Views Routes)
-- POST /api/views/track/<uuid> - تتبع مشاهدة الشقة
-- GET /api/views/owner/details - تفاصيل مشاهدات المالك
+---
 
 ## إعداد المشروع
 
@@ -118,7 +116,7 @@
 2. إنشاء بيئة افتراضية: `python -m venv venv`
 3. تفعيل البيئة: `source venv/bin/activate`
 4. تثبيت المتطلبات: `pip install -r requirements.txt`
-5. إعداد ملف .env من .env.example
+5. إعداد ملف `.env` من `.env.example`
 6. تشغيل الهجرات: `flask db upgrade`
 7. تشغيل التطبيق: `python run.py`
 
